@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import boto
+import datetime
 import logging
 import multiprocessing
 import os
 import subprocess
 import sys
-import datetime
+import threading
 
 from .config import get_config, configure_logging
 
@@ -34,7 +35,7 @@ def reduce_process(config_name, output_queue):
     except (KeyboardInterrupt, SystemExit):
         p.stdin.close()
 
-def progress_process(processed_files_queue, files_total):
+def progress_thread(processed_files_queue, files_total):
     files_processed = 0
     while True:
         file_name = processed_files_queue.get()
@@ -80,7 +81,8 @@ def main():
     reduce_worker = multiprocessing.Process(target=reduce_process, args=(config_name, output_queue))
     reduce_worker.start()
 
-    progress_worker = multiprocessing.Process(target=progress_process, args=(processed_files_queue, files_total))
+    progress_worker = threading.Thread(target=progress_thread, args=(processed_files_queue, files_total))
+    progress_worker.daemon = True
     progress_worker.start()
 
     try:
@@ -88,12 +90,10 @@ def main():
     except KeyboardInterrupt:
         for worker in workers:
             worker.terminate()
-        progress_worker.terminate()
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
         reduce_worker.terminate()
         sys.exit(1)
     
     # cleanup, kill all processes
-    progress_worker.terminate()
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
     reduce_worker.terminate()
