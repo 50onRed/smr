@@ -2,6 +2,7 @@ LOG_LEVEL = "info"
 LOG_FORMAT = "%(levelname)s:%(message)s"
 
 NUM_WORKERS = 4
+OUTPUT_FILENAME = "results/%(config_name)s.%(time)s.out"
 
 AWS_ACCESS_KEY = None
 AWS_SECRET_KEY = None

@@ -27,13 +27,19 @@ def worker_process(config_name, input_queue, output_queue, processed_files_queue
         p.terminate()
 
 def reduce_process(config_name, output_queue):
-    p = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE)
+    config = get_config(config_name)
+    stdout = None
+    if config.OUTPUT_FILENAME is not None:
+        stdout = open(config.OUTPUT_FILENAME % {"config_name": os.path.basename(config_name), "time": datetime.datetime.now()}, "w")
+    p = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=stdout)
     try:
         while True:
             result = output_queue.get()
             p.stdin.write(result)
     except (KeyboardInterrupt, SystemExit):
         p.stdin.close()
+        if stdout is not None:
+            stdout.close()
 
 def progress_thread(processed_files_queue, files_total):
     files_processed = 0
