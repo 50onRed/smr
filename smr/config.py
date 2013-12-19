@@ -1,5 +1,14 @@
+import logging
 import os
 import sys
+
+LOG_LEVELS = {
+    "critical": logging.CRITICAL,
+    "error": logging.ERROR,
+    "warning": logging.WARNING,
+    "info": logging.INFO,
+    "debug": logging.DEBUG
+}
 
 def get_config(config_name):
     if config_name.endswith(".py"):
@@ -16,3 +25,11 @@ def get_config(config_name):
     config = __import__(config_module)
 
     return config
+
+def configure_logging(config):
+    level_str = config.LOG_LEVEL.lower()
+    level = LOG_LEVELS.get(level_str, logging.INFO)
+    logging.basicConfig(level=level)
+
+    if level_str not in LOG_LEVELS:
+        logging.warn("invalid value for LOG_LEVEL: %s", config.LOG_LEVEL)

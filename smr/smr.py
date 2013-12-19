@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-from .config import get_config
+from .config import get_config, configure_logging
 
 def worker_process(config_name, input_queue, output_queue, processed_files_queue):
     pid = os.getpid()
@@ -21,7 +21,7 @@ def worker_process(config_name, input_queue, output_queue, processed_files_queue
             processed_files_queue.put(file_name)
             logging.debug("worker %d processed %s", pid, file_name)
             input_queue.task_done()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         p.terminate()
 
 def reduce_process(config_name, output_queue):
@@ -41,8 +41,15 @@ def progress_process(processed_files_queue, files_total):
         files_processed += 1
         sys.stderr.write("\rprocessed {0:%}".format(files_processed / float(files_total)))
 
-def run(config_name):
+def main():
+    if len(sys.argv) < 2:
+        sys.stderr.write("usage: smr config.py\n")
+        sys.exit(1)
+
+    config_name = sys.argv[1]
     config = get_config(config_name)
+
+    configure_logging(config)
 
     file_names = []
     logging.info("getting list of files from s3...")
@@ -78,17 +85,12 @@ def run(config_name):
     except KeyboardInterrupt:
         for worker in workers:
             worker.terminate()
+        progress_worker.terminate()
+        sys.stderr.write("\ruser aborted\n")
+        reduce_worker.terminate()
+        sys.exit(1)
     
-    # tell all processes that we're done
+    # cleanup, kill all processes
     progress_worker.terminate()
     sys.stderr.write("\rdone\n")
     reduce_worker.terminate()
-
-def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: smr config.py\n")
-        sys.exit(1)
-
-    logging.basicConfig(level=logging.INFO)
-
-    run(sys.argv[1])

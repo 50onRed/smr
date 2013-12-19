@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 import boto
 from boto.s3.key import Key
-import logging
 import os
 import sys
 import tempfile
 
-from .config import get_config
+from .config import get_config, configure_logging
 
 def main():
     if len(sys.argv) < 2:
         sys.stderr.write("usage: smr-map config.py\n")
         sys.exit(1)
 
-    logging.basicConfig(level=logging.INFO)
-
     config = get_config(sys.argv[1])
+
+    configure_logging(config)
 
     s3conn = boto.connect_s3(config.AWS_ACCESS_KEY, config.AWS_SECRET_KEY)
     bucket = s3conn.get_bucket(config.S3_BUCKET_NAME)
