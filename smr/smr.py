@@ -36,8 +36,13 @@ def reduce_process(config_name, output_queue):
         while True:
             result = output_queue.get()
             p.stdin.write(result)
+        p.stdin.close()
+        p.terminate()
+        if stdout is not None:
+            stdout.close()
     except (KeyboardInterrupt, SystemExit):
         p.stdin.close()
+        p.terminate()
         if stdout is not None:
             stdout.close()
 

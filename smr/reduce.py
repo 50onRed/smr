@@ -15,5 +15,7 @@ def main():
     try:
         for result in sys.stdin:
             config.REDUCE_FUNC(result.rstrip()) # remove trailing linebreak
+        config.OUTPUT_RESULTS_FUNC()
     except (KeyboardInterrupt, SystemExit):
         config.OUTPUT_RESULTS_FUNC()
+
