@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import subprocess
 import sys
+import datetime
 
 from .config import get_config, configure_logging
 
@@ -67,6 +68,8 @@ def main():
     output_queue = multiprocessing.Queue()
     processed_files_queue = multiprocessing.Queue()
 
+    start_time = datetime.datetime.now()
+
     workers = []
     for i in xrange(config.NUM_WORKERS):
         w = multiprocessing.Process(target=worker_process, args=(config_name, input_queue, output_queue, processed_files_queue))
@@ -86,11 +89,11 @@ def main():
         for worker in workers:
             worker.terminate()
         progress_worker.terminate()
-        sys.stderr.write("\ruser aborted\n")
+        sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
         reduce_worker.terminate()
         sys.exit(1)
     
     # cleanup, kill all processes
     progress_worker.terminate()
-    sys.stderr.write("\rdone\n")
+    sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
     reduce_worker.terminate()
