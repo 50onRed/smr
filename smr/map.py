@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import boto
 from boto.s3.key import Key
+import logging
 import os
 import sys
 import tempfile
@@ -20,9 +21,20 @@ def main():
     bucket = s3conn.get_bucket(config.S3_BUCKET_NAME)
     for file_name in sys.stdin:
         k = Key(bucket)
-        k.key = file_name.rstrip() # remove trailing linebreak
+        file_name = file_name.rstrip() # remove trailing linebreak
+        k.key = file_name
         temp_file, temp_filename = tempfile.mkstemp()
-        k.get_contents_to_filename(temp_filename)
+        tries = 0
+        while True:
+            try:
+                k.get_contents_to_filename(temp_filename)
+            except Exception as e:
+                tries += 1
+                if tries >= config.DOWNLOAD_RETRIES:
+                    logging.error("could not download file %s after %d tries", file_name, tries)
+                    raise e
+            else:
+                break
         try:
             config.MAP_FUNC(temp_filename)
         finally:
