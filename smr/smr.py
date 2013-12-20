@@ -30,7 +30,7 @@ def reduce_process(config_name, output_queue):
     config = get_config(config_name)
     stdout = None
     if config.OUTPUT_FILENAME is not None:
-        stdout = open(config.OUTPUT_FILENAME % {"config_name": os.path.basename(config_name), "time": datetime.datetime.now()}, "w")
+        stdout = open(config.OUTPUT_FILENAME, "w")
     p = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=stdout)
     try:
         while True:
@@ -101,10 +101,12 @@ def main():
     except KeyboardInterrupt:
         for worker in workers:
             worker.terminate()
-        sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
         reduce_worker.terminate()
+        sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
+        sys.stderr.write("partial results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))
         sys.exit(1)
     
     # cleanup, kill all processes
-    sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
     reduce_worker.terminate()
+    sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
+    sys.stderr.write("results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))

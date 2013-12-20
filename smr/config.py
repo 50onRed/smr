@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import sys
@@ -31,6 +32,9 @@ def get_config(config_name):
             continue
         if not hasattr(config, k):
             setattr(config, k, v)
+
+    if config.OUTPUT_FILENAME is not None:
+        config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": datetime.datetime.now()}
 
     return config
 
