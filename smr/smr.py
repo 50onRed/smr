@@ -26,25 +26,10 @@ def worker_process(config_name, input_queue, output_queue, processed_files_queue
     except (KeyboardInterrupt, SystemExit):
         p.terminate()
 
-def reduce_process(config_name, output_queue):
-    config = get_config(config_name)
-    stdout = None
-    if config.OUTPUT_FILENAME is not None:
-        stdout = open(config.OUTPUT_FILENAME, "w")
-    p = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=stdout)
-    try:
-        while True:
-            result = output_queue.get()
-            p.stdin.write(result)
-        p.stdin.close()
-        p.terminate()
-        if stdout is not None:
-            stdout.close()
-    except (KeyboardInterrupt, SystemExit):
-        p.stdin.close()
-        p.terminate()
-        if stdout is not None:
-            stdout.close()
+def reduce_thread(reduce_process, output_queue):
+    while True:
+        result = output_queue.get()
+        reduce_process.stdin.write(result)
 
 def progress_thread(processed_files_queue, files_total):
     files_processed = 0
@@ -89,7 +74,13 @@ def main():
         w.start()
         workers.append(w)
 
-    reduce_worker = multiprocessing.Process(target=reduce_process, args=(config_name, output_queue))
+    reduce_stdout = None
+    if config.OUTPUT_FILENAME is not None:
+        reduce_stdout = open(config.OUTPUT_FILENAME, "w")
+    reduce_process = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=reduce_stdout)
+
+    reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue))
+    reduce_worker.daemon = True
     reduce_worker.start()
 
     progress_worker = threading.Thread(target=progress_thread, args=(processed_files_queue, files_total))
@@ -101,12 +92,13 @@ def main():
     except KeyboardInterrupt:
         for worker in workers:
             worker.terminate()
-        reduce_worker.terminate()
+        reduce_process.stdin.close()
+        if reduce_stdout is not None:
+            reduce_stdout.close()
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
         sys.stderr.write("partial results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))
         sys.exit(1)
-    
-    # cleanup, kill all processes
-    reduce_worker.terminate()
+
+    reduce_process.stdin.close()
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
     sys.stderr.write("results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))
