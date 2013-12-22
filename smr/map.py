@@ -17,9 +17,9 @@ def main():
 
     configure_logging(config)
 
-    s3conn = boto.connect_s3(config.AWS_ACCESS_KEY, config.AWS_SECRET_KEY)
-    bucket = s3conn.get_bucket(config.S3_BUCKET_NAME)
     try:
+        s3conn = boto.connect_s3(config.AWS_ACCESS_KEY, config.AWS_SECRET_KEY)
+        bucket = s3conn.get_bucket(config.S3_BUCKET_NAME)
         for file_name in sys.stdin:
             k = Key(bucket)
             file_name = file_name.rstrip() # remove trailing linebreak
