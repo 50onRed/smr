@@ -36,16 +36,20 @@ S3_FILE_PREFIXES = [""]
 AWS_EC2_REGION = "us-east-1"
 """ AWS_EC2_AMI: ami to use when running ec2 workers """
 AWS_EC2_AMI = "ami-8f311fe6"
-""" AWS_EC2_MACHINE_TYPE: machine_type to use for workers """
-AWS_EC2_MACHINE_TYPE = "m1.large"
-""" AWS_EC2_KEYNAME: keyname to use for accessing EC2 workers """
+""" AWS_EC2_INSTANCE_TYPE: instance type to use for EC2 instances """
+AWS_EC2_INSTANCE_TYPE = "m1.large"
+""" AWS_EC2_KEYNAME: keyname to use for starting EC2 instances """
 AWS_EC2_KEYNAME = None
-""" AWS_EC2_SECURITY_GROUP: security group to use for accessing EC2 workers (needs port 22 open) """
-AWS_EC2_SECURITY_GROUP = None
+""" AWS_EC2_LOCAL_KEYFILE: local private key file used for ssh access to EC2 instances"""
+AWS_EC2_LOCAL_KEYFILE = "~/.ssh/id_rsa"
+""" AWS_EC2_SECURITY_GROUPS: security groups to use for accessing EC2 workers (needs port 22 open) """
+AWS_EC2_SECURITY_GROUPS = ["default"]
 """ AWS_EC2_SSH_USERNAME: username to use when logging into workers over SSH """
 AWS_EC2_SSH_USERNAME = "ubuntu"
 """ AWS_EC2_WORKERS: number of EC2 instances to use for this job """
 AWS_EC2_WORKERS = 1
+""" AWS_EC2_INITIALIZE_SMR_COMMANDS: commands to run for each EC2 instance to initialize smr """
+AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get -y install python-pip", "sudo pip install smr"]
 
 """
 MAP_FUNC:

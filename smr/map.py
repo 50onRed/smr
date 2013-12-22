@@ -6,7 +6,7 @@ import os
 import sys
 import tempfile
 
-from .config import get_config, configure_logging
+from .shared import get_config, configure_logging
 
 def main():
     if len(sys.argv) < 2:
@@ -14,7 +14,6 @@ def main():
         sys.exit(1)
 
     config = get_config(sys.argv[1])
-
     configure_logging(config)
 
     try:

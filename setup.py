@@ -10,10 +10,11 @@ setup(
     author_email='ivan@dyedov.com',
     url='',
     packages=['smr'],
-    install_requires=['boto>=2.20.1'],
+    install_requires=['boto>=2.20.1', 'paramiko>=1.12.0'],
     entry_points={
         'console_scripts': [
-            'smr = smr.smr:main',
+            'smr = smr.main:main',
+            'smr-ec2 = smr.ec2:main',
             'smr-map = smr.map:main',
             'smr-reduce = smr.reduce:main',
         ]
