@@ -32,6 +32,21 @@ S3_BUCKET_NAME = None
 """ S3_FILE_PREFIXES: list of S3 file prefixes that we're interested in for this job """
 S3_FILE_PREFIXES = [""]
 
+""" AWS_EC2_REGION: region to use when running ec2 workers """
+AWS_EC2_REGION = "us-east-1"
+""" AWS_EC2_AMI: ami to use when running ec2 workers """
+AWS_EC2_AMI = "ami-8f311fe6"
+""" AWS_EC2_MACHINE_TYPE: machine_type to use for workers """
+AWS_EC2_MACHINE_TYPE = "m1.large"
+""" AWS_EC2_KEYNAME: keyname to use for accessing EC2 workers """
+AWS_EC2_KEYNAME = None
+""" AWS_EC2_SECURITY_GROUP: security group to use for accessing EC2 workers (needs port 22 open) """
+AWS_EC2_SECURITY_GROUP = None
+""" AWS_EC2_SSH_USERNAME: username to use when logging into workers over SSH """
+AWS_EC2_SSH_USERNAME = "ubuntu"
+""" AWS_EC2_WORKERS: number of EC2 instances to use for this job """
+AWS_EC2_WORKERS = 1
+
 """
 MAP_FUNC:
   map function that will process s3 data
