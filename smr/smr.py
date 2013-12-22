@@ -12,20 +12,25 @@ from .config import get_config, configure_logging
 
 def worker_thread(config_name, input_queue, output_queue, processed_files_queue, abort_event):
     # assume that input_queue is pre-filled and never empty until the end
-    while not abort_event.is_set() and not input_queue.empty():
-        file_name = input_queue.get()
-        # TODO: possibly suppress stderr of map_process
-        map_process = subprocess.Popen(["smr-map", config_name], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        if map_process.poll() is not None:
-            logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
-            break
-        map_process.stdin.write("%s" % file_name)
-        map_process.stdin.close()
-        for line in map_process.stdout:
-            output_queue.put(line)
-        processed_files_queue.put(file_name)
-        logging.debug("worker %d processed %s", map_process.pid, file_name)
-        input_queue.task_done()
+    while not abort_event.is_set():
+        try:
+            file_name = input_queue.get(timeout=2)
+            # TODO: possibly suppress stderr of map_process
+            map_process = subprocess.Popen(["smr-map", config_name], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            if map_process.poll() is not None:
+                logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
+                input_queue.put(file_name) # requeue file
+                input_queue.task_done()
+                continue
+            map_process.stdin.write("%s" % file_name)
+            map_process.stdin.close()
+            for line in map_process.stdout:
+                output_queue.put(line)
+            processed_files_queue.put(file_name)
+            logging.debug("worker %d processed %s", map_process.pid, file_name)
+            input_queue.task_done()
+        except Empty:
+            pass
 
 def reduce_thread(reduce_process, output_queue, abort_event):
     while True:
@@ -47,7 +52,7 @@ def progress_thread(processed_files_queue, files_total, abort_event):
     files_processed = 0
     while not abort_event.is_set():
         try:
-            file_name = processed_files_queue.get()
+            file_name = processed_files_queue.get(timeout=2)
             logging.debug("master received signal that %s is processed", file_name)
             files_processed += 1
             sys.stderr.write("\rprocessed {0:%}".format(files_processed / float(files_total)))
