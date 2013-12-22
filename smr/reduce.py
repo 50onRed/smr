@@ -17,5 +17,6 @@ def main():
             config.REDUCE_FUNC(result.rstrip()) # remove trailing linebreak
         config.OUTPUT_RESULTS_FUNC()
     except (KeyboardInterrupt, SystemExit):
+        # we want to output results even if user aborted
         config.OUTPUT_RESULTS_FUNC()
 
