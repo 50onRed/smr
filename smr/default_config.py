@@ -48,8 +48,10 @@ AWS_EC2_SECURITY_GROUPS = ["default"]
 AWS_EC2_SSH_USERNAME = "ubuntu"
 """ AWS_EC2_WORKERS: number of EC2 instances to use for this job """
 AWS_EC2_WORKERS = 1
+
+from . import __version__
 """ AWS_EC2_INITIALIZE_SMR_COMMANDS: commands to run for each EC2 instance to initialize smr """
-AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get -y install python-pip", "sudo pip install smr"]
+AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get -y install python-pip", "sudo pip install smr==%s" % __version__]
 
 """
 MAP_FUNC:
