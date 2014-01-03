@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from setuptools import setup
+from smr import __version__
 
 setup(
     name='smr',
-    version='0.0.1',
+    version=__version__,
     description='SMR (Simple Map Reduce) is a simple tool for writing map-reduce jobs in python',
     long_description='SMR (Simple Map Reduce) is a simple tool for writing map-reduce jobs in python',
     author='Ivan Dyedov',
