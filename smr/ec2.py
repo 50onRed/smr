@@ -119,30 +119,26 @@ def main():
     reservation = conn.run_instances(image_id=config.AWS_EC2_AMI, min_count=config.AWS_EC2_WORKERS, max_count=config.AWS_EC2_WORKERS, \
                                      key_name=config.AWS_EC2_KEYNAME, instance_type=config.AWS_EC2_INSTANCE_TYPE, security_groups=config.AWS_EC2_SECURITY_GROUPS)
     instances = reservation.instances
+    instance_ids = [instance.id for instance in instances]
     for instance in instances:
         if not wait_for_instance(instance):
-            conn.terminate_instances([instance.id for instance in instances])
+            sys.stderr.write("requested instances did not start, terminating all instances: %s\n" % ",".join(instance_ids))
+            conn.terminate_instances(instance_ids)
+            sys.exit(1)
+
+        if not initialize_instance(config, instance):
+            sys.stderr.write("could not initialize workers, terminating all instances: %s\n" % ",".join(instance_ids))
+            conn.terminate_instances(instance_ids)
             sys.exit(1)
 
     abort_event = threading.Event()
     workers = []
     for instance in instances:
-        try:
-            initialize_instance(config, instance)
-        except:
-            abort_event.set()
-            break
-
         for i in xrange(config.NUM_WORKERS):
             w = threading.Thread(target=worker_thread, args=(config, config_name, input_queue, output_queue, processed_files_queue, abort_event, instance))
             #w.daemon = True
             w.start()
             workers.append(w)
-
-    if abort_event.is_set():
-        sys.stderr.write("could not initialize workers, terminating\n")
-        conn.terminate_instances([instance.id for instance in instances])
-        sys.exit(1)
 
     reduce_stdout = None
     if config.OUTPUT_FILENAME is not None:
@@ -161,12 +157,12 @@ def main():
         input_queue.join()
     except KeyboardInterrupt:
         abort_event.set()
-        conn.terminate_instances([instance.id for instance in instances])
+        conn.terminate_instances(instance_ids)
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
         sys.stderr.write("partial results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))
         sys.exit(1)
 
-    conn.terminate_instances([instance.id for instance in instances])
+    conn.terminate_instances(instance_ids)
     abort_event.set()
     if reduce_stdout is not None:
         reduce_stdout.close()
