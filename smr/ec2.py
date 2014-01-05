@@ -80,8 +80,8 @@ def initialize_instance(config, instance):
     sys.stderr.write("\n")
 
     # initialize smr on this ec2 instance
-    chan = ssh.get_transport().open_session()
     for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
+        chan = ssh.get_transport().open_session()
         chan.exec_command(command)
         exit_code = chan.recv_exit_status()
         if exit_code != 0:
