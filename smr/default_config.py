@@ -51,8 +51,8 @@ AWS_EC2_WORKERS = 1
 
 #from . import __version__
 """ AWS_EC2_INITIALIZE_SMR_COMMANDS: commands to run for each EC2 instance to initialize smr """
-#AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get -y install python-pip", "sudo pip install smr==%s" % __version__]
-AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get -y install python-pip git", "sudo pip install git+git://github.com/idyedov/smr.git"]
+#AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get update", "sudo apt-get -q -y install python-pip", "sudo pip install smr==%s" % __version__]
+AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get update", "sudo apt-get -q -y install python-pip git", "sudo pip install git+git://github.com/idyedov/smr.git"]
 
 """
 MAP_FUNC:
