@@ -32,7 +32,7 @@ def worker_thread(config, config_name, input_queue, output_queue, processed_file
         try:
             file_name = input_queue.get(timeout=2)
             stdin, stdout, stderr = ssh.exec_command("smr-map %s" % config.AWS_EC2_REMOTE_CONFIG_PATH)
-            stdin.write("%s" % file_name)
+            stdin.write(file_name)
             stdin.close()
             for line in stdout:
                 output_queue.put(line)

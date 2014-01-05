@@ -20,7 +20,7 @@ def worker_thread(config_name, input_queue, output_queue, processed_files_queue,
                 input_queue.put(file_name) # requeue file
                 input_queue.task_done()
                 continue
-            map_process.stdin.write("%s" % file_name)
+            map_process.stdin.write(file_name)
             map_process.stdin.close()
             for line in map_process.stdout:
                 output_queue.put(line)
