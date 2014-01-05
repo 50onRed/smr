@@ -28,15 +28,10 @@ def worker_thread(config, config_name, input_queue, output_queue, processed_file
         abort_event.set()
         return
 
-    remote_config_path = "/tmp/smr_config.py"
-    sftp = ssh.open_sftp()
-    sftp.put(config_name, remote_config_path)
-    sftp.close()
-
     while not abort_event.is_set():
         try:
             file_name = input_queue.get(timeout=2)
-            stdin, stdout, stderr = ssh.exec_command("smr-map %s" % remote_config_path)
+            stdin, stdout, stderr = ssh.exec_command("smr-map %s" % config.AWS_EC2_REMOTE_CONFIG_PATH)
             stdin.write("%s" % file_name)
             stdin.close()
             for line in stdout:
@@ -94,6 +89,11 @@ def initialize_instance(config, instance):
             ssh.close() # closes chan as well
             return False
         logging.info("instance %s successfully ran %s", instance.id, command)
+
+    # copy config to this instance
+    sftp = ssh.open_sftp()
+    sftp.put(config_name, config.AWS_EC2_REMOTE_CONFIG_PATH)
+    sftp.close()
 
     ssh.close()
     logging.info("instance %s successfully initialized", instance.id)

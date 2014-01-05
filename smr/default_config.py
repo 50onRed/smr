@@ -54,6 +54,9 @@ AWS_EC2_WORKERS = 1
 #AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev", "sudo pip install smr==%s" % __version__]
 AWS_EC2_INITIALIZE_SMR_COMMANDS = ["sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev git", "sudo pip install git+git://github.com/idyedov/smr.git"]
 
+""" AWS_EC2_REMOTE_CONFIG_PATH: where to store smr config on EC2 instances """
+AWS_EC2_REMOTE_CONFIG_PATH = "/tmp/smr_config.py"
+
 """
 MAP_FUNC:
   map function that will process s3 data
