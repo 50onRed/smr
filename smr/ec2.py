@@ -28,14 +28,24 @@ def worker_thread(config, config_name, input_queue, output_queue, processed_file
         abort_event.set()
         return
 
+    bufsize = -1
     while not abort_event.is_set():
         try:
             file_name = input_queue.get(timeout=2)
-            stdin, stdout, stderr = ssh.exec_command("smr-map %s" % config.AWS_EC2_REMOTE_CONFIG_PATH)
+            chan = ssh.get_transport().open_session()
+            chan.exec_command("smr-map %s" % config.AWS_EC2_REMOTE_CONFIG_PATH)
+            stdin = chan.makefile("wb", bufsize)
             stdin.write(file_name)
             stdin.close()
+            stdout = chan.makefile("rb", bufsize)
             for line in stdout:
                 output_queue.put(line)
+            exit_code = chan.recv_exit_status()
+            if exit_code != 0:
+                logging.error("instance %s map process exited with code %d", instance.id, exit_code)
+                input_queue.put(file_name) # requeue file
+                input_queue.task_done()
+                continue
             processed_files_queue.put(file_name)
             logging.debug("instance %d processed %s", instance.id, file_name)
             input_queue.task_done()
