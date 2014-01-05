@@ -90,12 +90,13 @@ def initialize_instance(config, instance):
         chan.exec_command(command)
         exit_code = chan.recv_exit_status()
         if exit_code != 0:
-            logging.error("Invalid exit code of %s: %d", command, exit_code)
+            logging.error("instance %s invalid exit code of %s: %d", instance.id, command, exit_code)
             ssh.close() # closes chan as well
             return False
+        logging.info("instance %s successfully ran %s", instance.id, command)
 
     ssh.close()
-    logging.info("successfully initialized %s %s", instance.id, instance.ip_address)
+    logging.info("instance %s successfully initialized", instance.id)
     return True
 
 def main():
