@@ -28,24 +28,20 @@ def worker_thread(config, config_name, input_queue, output_queue, processed_file
         abort_event.set()
         return
 
-    bufsize = -1
     while not abort_event.is_set():
         try:
             file_name = input_queue.get(timeout=2)
             chan = ssh.get_transport().open_session()
-            chan.exec_command("smr-map %s" % config.AWS_EC2_REMOTE_CONFIG_PATH)
-            stdin = chan.makefile("wb", bufsize)
-            stdin.write(file_name)
-            stdin.close()
-            stdout = chan.makefile("rb", bufsize)
-            for line in stdout:
-                output_queue.put(line)
+            chan.exec_command("echo '%s' | smr-map %s" % (file_name, config.AWS_EC2_REMOTE_CONFIG_PATH))
+            stdout = chan.makefile("rb")
             exit_code = chan.recv_exit_status()
             if exit_code != 0:
                 logging.error("instance %s map process exited with code %d", instance.id, exit_code)
                 input_queue.put(file_name) # requeue file
                 input_queue.task_done()
                 continue
+            for line in stdout:
+                output_queue.put(line)
             processed_files_queue.put(file_name)
             logging.debug("instance %d processed %s", instance.id, file_name)
             input_queue.task_done()
@@ -74,7 +70,7 @@ def wait_for_instance(instance):
     logging.info("New instance %s started: %s", instance.id, instance.ip_address)
     return True
 
-def initialize_instance(config, instance):
+def initialize_instance(config, config_name, instance):
     ssh = get_ssh_connection()
     logging.info("waiting for ssh on instance %s %s ...", instance.id, instance.ip_address)
     while True:
@@ -93,7 +89,13 @@ def initialize_instance(config, instance):
     for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
         chan = ssh.get_transport().open_session()
         chan.exec_command(command)
+        stdout = chan.makefile("rb")
+        stderr = chan.makefile_stderr("rb")
         exit_code = chan.recv_exit_status()
+        for line in stdout:
+            logging.debug(line.rstrip())
+        for line in stderr:
+            logging.warn(line.rstrip())
         if exit_code != 0:
             logging.error("instance %s invalid exit code of %s: %d", instance.id, command, exit_code)
             ssh.close() # closes chan as well
@@ -142,7 +144,7 @@ def main():
             conn.terminate_instances(instance_ids)
             sys.exit(1)
 
-        if not initialize_instance(config, instance):
+        if not initialize_instance(config, config_name, instance):
             sys.stderr.write("could not initialize workers, terminating all instances: %s\n" % ",".join(instance_ids))
             conn.terminate_instances(instance_ids)
             sys.exit(1)
