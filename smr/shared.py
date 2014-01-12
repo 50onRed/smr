@@ -48,6 +48,10 @@ def configure_logging(config):
     if level_str not in LOG_LEVELS:
         logging.warn("invalid value for LOG_LEVEL: %s", config.LOG_LEVEL)
 
+    paramiko_level_str = config.PARAMIKO_LOG_LEVEL.lower()
+    paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
+    logging.getLogger("paramiko").setLevel(paramiko_level)
+
 def get_files_to_process(config):
     file_names = []
     logging.info("getting list of files from s3...")

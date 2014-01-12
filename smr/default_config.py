@@ -1,5 +1,7 @@
 """ LOG_LEVEL: level of logging to be used for this job """
 LOG_LEVEL = "info"
+""" PARAMIKO_LOG_LEVEL: level of logging to be used for paramiko ssh connections (for smr-ec2 only) """
+PARAMIKO_LOG_LEVEL = "warning"
 """
 LOG_FORMAT:
   format of log messages
