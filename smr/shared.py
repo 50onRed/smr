@@ -64,10 +64,7 @@ def get_files_to_process(config):
     return file_names
 
 def reduce_thread(reduce_process, output_queue, abort_event):
-    while True:
-        if abort_event.is_set():
-            reduce_process.terminate()
-            break
+    while not abort_event.is_set():
         try:
             result = output_queue.get(timeout=2)
             if reduce_process.poll() is not None:
@@ -76,6 +73,7 @@ def reduce_thread(reduce_process, output_queue, abort_event):
                 abort_event.set()
                 break
             reduce_process.stdin.write(result)
+            output_queue.task_done()
         except Empty:
             pass
 
@@ -87,5 +85,6 @@ def progress_thread(processed_files_queue, files_total, abort_event):
             logging.debug("master received signal that %s is processed", file_name)
             files_processed += 1
             sys.stderr.write("\rprocessed {0:%}".format(files_processed / float(files_total)))
+            processed_files_queue.task_done()
         except Empty:
             pass

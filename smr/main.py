@@ -2,7 +2,7 @@
 import datetime
 import logging
 import multiprocessing
-from Queue import Empty
+from Queue import Empty, Queue
 import subprocess
 import sys
 import threading
@@ -46,8 +46,8 @@ def main():
     input_queue = multiprocessing.JoinableQueue(files_total)
     for file_name in file_names:
         input_queue.put(file_name)
-    output_queue = multiprocessing.Queue()
-    processed_files_queue = multiprocessing.Queue()
+    output_queue = Queue()
+    processed_files_queue = Queue()
 
     start_time = datetime.datetime.now()
     abort_event = threading.Event()
