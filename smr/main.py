@@ -14,16 +14,16 @@ def worker_thread(config_name, input_queue, output_queue, processed_files_queue,
         try:
             file_name = input_queue.get(timeout=2)
             # TODO: possibly suppress stderr of map_process
-            map_process = subprocess.Popen(["smr-map", config_name], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            if map_process.poll() is not None:
-                logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
-                input_queue.put(file_name) # requeue file
-                input_queue.task_done()
-                continue
-            map_process.stdin.write(file_name)
-            map_process.stdin.close()
+            map_process = subprocess.Popen("echo '%s' | smr-map %s" % (file_name, config_name), stdout=subprocess.PIPE, shell=True)
             for line in map_process.stdout:
                 output_queue.put(line)
+            map_process.wait()
+            if map_process.returncode != 0:
+                logging.error("echo '%s' | smr-map %s", file_name, config_name)
+                logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
+                input_queue.task_done()
+                input_queue.put_nowait(file_name) # requeue file
+                continue
             processed_files_queue.put(file_name)
             logging.debug("worker %d processed %s", map_process.pid, file_name)
             input_queue.task_done()
