@@ -10,6 +10,13 @@ LOG_FORMAT:
     - levelname: message log level
 """
 LOG_FORMAT = "%(levelname)s:%(message)s"
+"""
+LOG_FILENAME:
+  filename where log output for this job will be stored.
+  available format params are:
+    - config_name: basename of config file that's passed to smr
+"""
+LOG_FILENAME = "logs/%(config_name)s.log"
 
 """ NUM_WORKERS: number of worker processes to use """
 NUM_WORKERS = 4

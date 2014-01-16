@@ -35,14 +35,16 @@ def get_config(config_name):
         if not hasattr(config, k):
             setattr(config, k, v)
 
-    config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": datetime.datetime.now()}
+    now = datetime.datetime.now()
+    config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": now}
+    config.LOG_FILENAME = config.LOG_FILENAME % {"config_name": config_module}
 
     return config
 
 def configure_logging(config):
     level_str = config.LOG_LEVEL.lower()
     level = LOG_LEVELS.get(level_str, logging.INFO)
-    logging.basicConfig(level=level, format=config.LOG_FORMAT)
+    logging.basicConfig(level=level, format=config.LOG_FORMAT, filename=config.LOG_FILENAME)
 
     if level_str not in LOG_LEVELS:
         logging.warn("invalid value for LOG_LEVEL: %s", config.LOG_LEVEL)
