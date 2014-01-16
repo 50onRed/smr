@@ -18,7 +18,6 @@ DOWNLOAD_RETRIES = 3
 """
 OUTPUT_FILENAME:
   filename where results for this job will be stored.
-  results will be output to STDOUT if set to None
   available format params are:
     - config_name: basename of config file that's passed to smr
     - time: current date and time

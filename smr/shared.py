@@ -35,8 +35,7 @@ def get_config(config_name):
         if not hasattr(config, k):
             setattr(config, k, v)
 
-    if config.OUTPUT_FILENAME is not None:
-        config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": datetime.datetime.now()}
+    config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": datetime.datetime.now()}
 
     return config
 

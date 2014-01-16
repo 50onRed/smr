@@ -158,9 +158,7 @@ def main():
             w.start()
             workers.append(w)
 
-    reduce_stdout = None
-    if config.OUTPUT_FILENAME is not None:
-        reduce_stdout = open(config.OUTPUT_FILENAME, "w")
+    reduce_stdout = open(config.OUTPUT_FILENAME, "w")
     reduce_process = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=reduce_stdout)
 
     reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
@@ -177,12 +175,11 @@ def main():
         abort_event.set()
         conn.terminate_instances(instance_ids)
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-        sys.stderr.write("partial results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))
+        sys.stderr.write("partial results are in %s\n" % (config.OUTPUT_FILENAME))
         sys.exit(1)
 
     conn.terminate_instances(instance_ids)
     abort_event.set()
-    if reduce_stdout is not None:
-        reduce_stdout.close()
+    reduce_stdout.close()
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-    sys.stderr.write("results are in %s\n" % ("STDOUT" if config.OUTPUT_FILENAME is None else config.OUTPUT_FILENAME))
+    sys.stderr.write("results are in %s\n" % (config.OUTPUT_FILENAME))
