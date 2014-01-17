@@ -3,51 +3,53 @@ import boto
 import boto.ec2
 import datetime
 import logging
-import multiprocessing
 import os
 import paramiko
-from Queue import Empty
+from Queue import Queue
 import subprocess
 import sys
 import threading
 import time
 
-from .shared import get_config, configure_logging, get_files_to_process, reduce_thread, progress_thread
+from .shared import get_config, configure_logging, get_files_to_process, reduce_thread, \
+    progress_thread, write_file_to_descriptor
 
 def get_ssh_connection():
     ssh_connection = paramiko.SSHClient()
     ssh_connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     return ssh_connection
 
-def worker_thread(config, config_name, input_queue, output_queue, processed_files_queue, abort_event, instance):
-    ssh = get_ssh_connection()
-    try:
-        ssh.connect(instance.ip_address, username=config.AWS_EC2_SSH_USERNAME, key_filename=os.path.expanduser(config.AWS_EC2_LOCAL_KEYFILE))
-    except:
-        logging.error("could not ssh to %s %s", instance.id, instance.ip_address)
-        abort_event.set()
-        return
+def worker_stdout_read_thread(output_queue, stdout):
+    for line in iter(stdout.readline, ""):
+        output_queue.put(line)
 
-    while not abort_event.is_set():
-        try:
-            file_name = input_queue.get(timeout=2)
-            chan = ssh.get_transport().open_session()
-            chan.exec_command("echo '%s' | smr-map %s" % (file_name, config.AWS_EC2_REMOTE_CONFIG_PATH))
-            stdout = chan.makefile("rb")
-            exit_code = chan.recv_exit_status()
-            if exit_code != 0:
-                logging.error("instance %s map process exited with code %d", instance.id, exit_code)
-                input_queue.put(file_name) # requeue file
-                input_queue.task_done()
-                continue
-            for line in stdout:
-                output_queue.put(line)
-            processed_files_queue.put(file_name)
-            logging.debug("instance %d processed %s", instance.id, file_name)
-            input_queue.task_done()
-        except Empty:
-            pass
-    ssh.close()
+def worker_stderr_read_thread(processed_files_queue, input_queue, chan, abort_event):
+
+    stdin = chan.makefile("wb")
+    stderr = chan.makefile_stderr("rb")
+
+    # write first file to mapper
+    if not abort_event.is_set() and not write_file_to_descriptor(input_queue, stdin):
+        abort_event.set()
+        sys.exit(1)
+
+    for line in iter(stderr.readline, ""):
+        line = line.rstrip() # remove trailing linebreak
+        if line.startswith("+"):
+            processed_files_queue.put(line[1:])
+        elif line.startswith("!"):
+            input_queue.put(line[1:]) # re-queue file
+        else:
+            logging.error("invalid message received from mapper: %s", line)
+
+        if abort_event.is_set() or not write_file_to_descriptor(input_queue, stdin):
+            break
+
+    exit_code = chan.recv_exit_status()
+    if exit_code != 0:
+        logging.error("map process exited with code %d", exit_code)
+
+    chan.close()
 
 def wait_for_instance(instance):
     """ wait for instance status to be 'running' in which case return True, False otherwise """
@@ -121,21 +123,29 @@ def main():
 
     configure_logging(config)
 
+    if not config.AWS_EC2_KEYNAME:
+        sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
+        sys.exit(1)
+
+    if not config.AWS_EC2_LOCAL_KEYFILE:
+        sys.stderr.write("invalid AWS_EC2_LOCAL_KEYFILE\n")
+        sys.exit(1)
+
     file_names = get_files_to_process(config)
     files_total = len(file_names)
 
-    input_queue = multiprocessing.JoinableQueue(files_total)
+    input_queue = Queue(files_total)
     for file_name in file_names:
         input_queue.put(file_name)
-    output_queue = multiprocessing.Queue()
-    processed_files_queue = multiprocessing.Queue()
+    output_queue = Queue()
+    processed_files_queue = Queue(files_total)
 
     start_time = datetime.datetime.now()
 
     conn = boto.ec2.connect_to_region(config.AWS_EC2_REGION, aws_access_key_id=config.AWS_ACCESS_KEY, aws_secret_access_key=config.AWS_SECRET_KEY)
-    logging.info("requested to start %d instances", config.AWS_EC2_WORKERS)
     reservation = conn.run_instances(image_id=config.AWS_EC2_AMI, min_count=config.AWS_EC2_WORKERS, max_count=config.AWS_EC2_WORKERS, \
                                      key_name=config.AWS_EC2_KEYNAME, instance_type=config.AWS_EC2_INSTANCE_TYPE, security_groups=config.AWS_EC2_SECURITY_GROUPS)
+    logging.info("requested to start %d instances", config.AWS_EC2_WORKERS)
     instances = reservation.instances
     instance_ids = [instance.id for instance in instances]
     for instance in instances:
@@ -153,10 +163,28 @@ def main():
     workers = []
     for instance in instances:
         for i in xrange(config.NUM_WORKERS):
-            w = threading.Thread(target=worker_thread, args=(config, config_name, input_queue, output_queue, processed_files_queue, abort_event, instance))
-            #w.daemon = True
-            w.start()
-            workers.append(w)
+
+            ssh = get_ssh_connection()
+            try:
+                ssh.connect(instance.ip_address, username=config.AWS_EC2_SSH_USERNAME, key_filename=os.path.expanduser(config.AWS_EC2_LOCAL_KEYFILE))
+            except:
+                logging.error("could not ssh to %s %s", instance.id, instance.ip_address)
+                abort_event.set()
+                sys.exit(1)
+
+            chan = ssh.get_transport().open_session()
+            chan.exec_command("smr-map %s" % (config.AWS_EC2_REMOTE_CONFIG_PATH))
+            stdout = chan.makefile("rb")
+
+            t = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, stdout))
+            t.daemon = True
+            t.start()
+
+            t = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, abort_event))
+            t.daemon = True
+            t.start()
+
+            workers.append(t)
 
     reduce_stdout = open(config.OUTPUT_FILENAME, "w")
     reduce_process = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=reduce_stdout)
@@ -170,7 +198,8 @@ def main():
     progress_worker.start()
 
     try:
-        input_queue.join()
+        for w in workers:
+            w.join()
     except KeyboardInterrupt:
         abort_event.set()
         conn.terminate_instances(instance_ids)

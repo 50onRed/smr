@@ -67,6 +67,7 @@ def get_files_to_process(config):
 def reduce_thread(reduce_process, output_queue, abort_event):
     while not abort_event.is_set():
         try:
+            # result has a trailing linebreak
             result = output_queue.get(timeout=2)
             if reduce_process.poll() is not None:
                 # don't want to write if process has already terminated
@@ -74,6 +75,7 @@ def reduce_thread(reduce_process, output_queue, abort_event):
                 abort_event.set()
                 break
             reduce_process.stdin.write(result)
+            reduce_process.stdin.flush()
             output_queue.task_done()
         except Empty:
             pass
@@ -89,3 +91,15 @@ def progress_thread(processed_files_queue, files_total, abort_event):
             processed_files_queue.task_done()
         except Empty:
             pass
+
+def write_file_to_descriptor(input_queue, descriptor):
+    try:
+        file_name = input_queue.get(timeout=2)
+        descriptor.write("%s\n" % file_name)
+        descriptor.flush()
+        input_queue.task_done()
+        return True
+    except Empty:
+        # no more files in queue
+        descriptor.close()
+        return False
