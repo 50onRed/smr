@@ -180,15 +180,15 @@ def main():
             chan = ssh.get_transport().open_session()
             chan.exec_command("smr-map %s" % (config.AWS_EC2_REMOTE_CONFIG_PATH))
 
-            t = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
-            t.daemon = True
-            t.start()
+            stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
+            stdout_thread.daemon = True
+            stdout_thread.start()
 
-            t = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, ssh, abort_event))
-            t.daemon = True
-            t.start()
+            stderr_thread = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, ssh, abort_event))
+            stderr_thread.daemon = True
+            stderr_thread.start()
 
-            workers.append(t)
+            workers.append(stderr_thread)
 
     reduce_stdout = open(config.OUTPUT_FILENAME, "w")
     reduce_process = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=reduce_stdout)
