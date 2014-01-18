@@ -13,6 +13,11 @@ LOG_LEVELS = {
     "debug": logging.DEBUG
 }
 
+def ensure_dir_exists(path):
+    dir_name = os.path.dirname(path)
+    if dir_name != '' and not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+
 def get_config(config_name):
     if config_name.endswith(".py"):
         config_name = config_name[:-3]
@@ -37,6 +42,7 @@ def get_config(config_name):
 
     now = datetime.datetime.now()
     config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": now}
+    ensure_dir_exists(config.OUTPUT_FILENAME)
     config.LOG_FILENAME = config.LOG_FILENAME % {"config_name": config_module}
 
     return config
@@ -44,6 +50,7 @@ def get_config(config_name):
 def configure_logging(config):
     level_str = config.LOG_LEVEL.lower()
     level = LOG_LEVELS.get(level_str, logging.INFO)
+    ensure_dir_exists(config.LOG_FILENAME)
     logging.basicConfig(level=level, format=config.LOG_FORMAT, filename=config.LOG_FILENAME)
 
     if level_str not in LOG_LEVELS:
