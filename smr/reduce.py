@@ -12,7 +12,7 @@ def main():
     configure_logging(config)
 
     try:
-        for result in sys.stdin:
+        for result in iter(sys.stdin.readline, ""):
             config.REDUCE_FUNC(result.rstrip()) # remove trailing linebreak
     except (KeyboardInterrupt, SystemExit):
         # we want to output results even if user aborted
