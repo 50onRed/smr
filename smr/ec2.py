@@ -132,10 +132,6 @@ def main():
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)
 
-    if not config.AWS_EC2_LOCAL_KEYFILE:
-        sys.stderr.write("invalid AWS_EC2_LOCAL_KEYFILE\n")
-        sys.exit(1)
-
     file_names = get_files_to_process(config)
     files_total = len(file_names)
 
