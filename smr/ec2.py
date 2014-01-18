@@ -19,11 +19,12 @@ def get_ssh_connection():
     ssh_connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     return ssh_connection
 
-def worker_stdout_read_thread(output_queue, stdout):
+def worker_stdout_read_thread(output_queue, chan):
+    stdout = chan.makefile("rb")
     for line in iter(stdout.readline, ""):
         output_queue.put(line)
 
-def worker_stderr_read_thread(processed_files_queue, input_queue, chan, abort_event):
+def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abort_event):
 
     stdin = chan.makefile("wb")
     stderr = chan.makefile_stderr("rb")
@@ -36,9 +37,13 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, abort_ev
     for line in iter(stderr.readline, ""):
         line = line.rstrip() # remove trailing linebreak
         if line.startswith("+"):
-            processed_files_queue.put(line[1:])
+            file_name = line[1:]
+            logging.debug("successfully processed %s", file_name)
+            processed_files_queue.put(file_name)
         elif line.startswith("!"):
-            input_queue.put(line[1:]) # re-queue file
+            file_name = line[1:]
+            logging.warn("error processing %s, requeuing...", file_name)
+            input_queue.put(file_name) # re-queue file
         else:
             logging.error("invalid message received from mapper: %s", line)
 
@@ -49,7 +54,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, abort_ev
     if exit_code != 0:
         logging.error("map process exited with code %d", exit_code)
 
-    chan.close()
+    ssh.close()
 
 def wait_for_instance(instance):
     """ wait for instance status to be 'running' in which case return True, False otherwise """
@@ -93,11 +98,11 @@ def initialize_instance(config, config_name, instance):
         chan.exec_command(command)
         stdout = chan.makefile("rb")
         stderr = chan.makefile_stderr("rb")
-        exit_code = chan.recv_exit_status()
-        for line in stdout:
+        for line in iter(stdout.readline, ""):
             logging.debug(line.rstrip())
-        for line in stderr:
+        for line in iter(stderr.readline, ""):
             logging.warn(line.rstrip())
+        exit_code = chan.recv_exit_status()
         if exit_code != 0:
             logging.error("instance %s invalid exit code of %s: %d", instance.id, command, exit_code)
             ssh.close() # closes chan as well
@@ -174,13 +179,12 @@ def main():
 
             chan = ssh.get_transport().open_session()
             chan.exec_command("smr-map %s" % (config.AWS_EC2_REMOTE_CONFIG_PATH))
-            stdout = chan.makefile("rb")
 
-            t = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, stdout))
+            t = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
             t.daemon = True
             t.start()
 
-            t = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, abort_event))
+            t = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, ssh, abort_event))
             t.daemon = True
             t.start()
 
