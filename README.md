@@ -14,12 +14,19 @@ or just
 
 ## Usage
   ```smr config.py```
+  or
   ```smr-ec2 config.py```
 
 ### config.py
 config.py has all the information about the job you want to run, including
 the code for map and reduce functions. Please look ad smr/default_config.py for
 explanation and usage of all the config params.
+
+The most important parameters that you should implement in config are:
+ * MAP_FUNC: function that will take a single argument of local filename to be processed for your smr job.
+     Each line that it prints to STDOUT will be sent to REDUCE_FUNC as an argument
+ * REDUCE_FUNC: function that takes a single string argument of a map function output
+ * OUTPUT_RESULTS_FUNC: function that's called when the job is finished, takes no arguments
 
 ## smr scripts
 
