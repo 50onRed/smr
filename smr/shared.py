@@ -51,6 +51,7 @@ def configure_logging(config):
     level_str = config.LOG_LEVEL.lower()
     level = LOG_LEVELS.get(level_str, logging.INFO)
     ensure_dir_exists(config.LOG_FILENAME)
+    print "logging to %s" % (config.LOG_FILENAME)
     logging.basicConfig(level=level, format=config.LOG_FORMAT, filename=config.LOG_FILENAME)
 
     if level_str not in LOG_LEVELS:
