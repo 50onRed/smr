@@ -50,9 +50,10 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
         if abort_event.is_set() or not write_file_to_descriptor(input_queue, stdin):
             break
 
-    exit_code = chan.recv_exit_status()
-    if exit_code != 0:
-        logging.error("map process exited with code %d", exit_code)
+    if not abort_event.is_set():
+        exit_code = chan.recv_exit_status()
+        if exit_code != 0:
+            logging.error("map process exited with code %d", exit_code)
 
     ssh.close()
 
@@ -127,6 +128,7 @@ def main():
     config = get_config(config_name)
 
     configure_logging(config)
+    print "logging to %s" % (config.LOG_FILENAME)
 
     if not config.AWS_EC2_KEYNAME:
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")

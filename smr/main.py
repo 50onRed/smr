@@ -40,10 +40,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
         else:
             logging.error("invalid message received from mapper: %s", line)
 
-        if abort_event.is_set():
-            break
-        if not write_file_to_descriptor(input_queue, map_process.stdin):
-            abort_event.set()
+        if abort_event.is_set() or not write_file_to_descriptor(input_queue, map_process.stdin):
             break
 
         check_map_process(map_process, abort_event)
@@ -59,6 +56,7 @@ def main():
     config = get_config(config_name)
 
     configure_logging(config)
+    print "logging to %s" % (config.LOG_FILENAME)
 
     file_names = get_files_to_process(config)
     files_total = len(file_names)
