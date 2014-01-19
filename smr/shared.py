@@ -100,6 +100,10 @@ def progress_thread(processed_files_queue, files_total, abort_event):
             pass
 
 def write_file_to_descriptor(input_queue, descriptor):
+    """
+    get item from input_queue and write it to descriptor
+    returns True if and only if it was successfully written
+    """
     try:
         file_name = input_queue.get(timeout=2)
         descriptor.write("%s\n" % file_name)
@@ -110,3 +114,5 @@ def write_file_to_descriptor(input_queue, descriptor):
         # no more files in queue
         descriptor.close()
         return False
+    except IOError:
+        return False # probably bad descriptor

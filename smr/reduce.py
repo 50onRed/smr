@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 import sys
 
 from .shared import get_config, configure_logging

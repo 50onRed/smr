@@ -9,22 +9,21 @@ import threading
 from .shared import get_config, configure_logging, get_files_to_process, reduce_thread, \
     progress_thread, write_file_to_descriptor
 
-def worker_stdout_read_thread(output_queue, map_process):
-    map_process.poll()
-    if map_process.returncode is not None:
-        #abort_event.set()
-        #logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
-        sys.exit(1)
+def worker_stdout_read_thread(output_queue, map_process, abort_event):
+    check_map_process(map_process, abort_event)
     for line in iter(map_process.stdout.readline, ""):
         output_queue.put(line)
     map_process.wait()
 
-def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, abort_event):
+def check_map_process(map_process, abort_event):
     map_process.poll()
     if map_process.returncode is not None:
         abort_event.set()
         logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
         sys.exit(1)
+
+def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, abort_event):
+    check_map_process(map_process, abort_event)
 
     # write first file to mapper
     if not abort_event.is_set() and not write_file_to_descriptor(input_queue, map_process.stdin):
@@ -41,8 +40,13 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
         else:
             logging.error("invalid message received from mapper: %s", line)
 
-        if abort_event.is_set() or not write_file_to_descriptor(input_queue, map_process.stdin):
+        if abort_event.is_set():
             break
+        if not write_file_to_descriptor(input_queue, map_process.stdin):
+            abort_event.set()
+            break
+
+        check_map_process(map_process, abort_event)
 
     map_process.wait()
 
@@ -72,7 +76,7 @@ def main():
     for i in xrange(config.NUM_WORKERS):
         map_process = subprocess.Popen(["smr-map", config_name], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        row = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, map_process))
+        row = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, map_process, abort_event))
         row.daemon = True
         row.start()
 
