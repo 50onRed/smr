@@ -55,6 +55,8 @@ The most important parameters that you should implement in config are:
 
 ## TODO
  * add option to output results to s3
+ * don't allow smr-ec2 to run if there's local files in INPUT_DATA
  * better documentation
  * add simple examples & data sets
  * add ability for multi-level reducers
+ * python3 support
