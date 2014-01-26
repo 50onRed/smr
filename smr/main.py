@@ -6,8 +6,9 @@ import subprocess
 import sys
 import threading
 
-from .shared import get_config, configure_logging, get_files_to_process, reduce_thread, \
-    progress_thread, write_file_to_descriptor
+from .shared import get_config, configure_logging, reduce_thread, progress_thread, \
+    write_file_to_descriptor
+from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
     check_map_process(map_process, abort_event)
@@ -58,7 +59,7 @@ def main():
     configure_logging(config)
     print "logging to %s" % (config.LOG_FILENAME)
 
-    file_names = get_files_to_process(config)
+    file_names = get_uris(config)
     files_total = len(file_names)
 
     input_queue = Queue(files_total)

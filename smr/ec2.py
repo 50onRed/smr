@@ -11,8 +11,9 @@ import sys
 import threading
 import time
 
-from .shared import get_config, configure_logging, get_files_to_process, reduce_thread, \
-    progress_thread, write_file_to_descriptor
+from .shared import get_config, configure_logging, reduce_thread, progress_thread, \
+    write_file_to_descriptor
+from .uri import get_uris
 
 def get_ssh_connection():
     ssh_connection = paramiko.SSHClient()
@@ -137,7 +138,7 @@ def main():
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)
 
-    file_names = get_files_to_process(config)
+    file_names = get_uris(config)
     files_total = len(file_names)
 
     input_queue = Queue(files_total)

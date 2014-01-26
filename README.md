@@ -26,7 +26,7 @@ The most important parameters that you should implement in config are:
  * MAP_FUNC: function that will take a single argument of local filename to be processed for your smr job.
      Each line that it prints to STDOUT will be sent to REDUCE_FUNC as an argument
  * REDUCE_FUNC: function that takes a single string argument of a map function output
- * INPUT_DATA: list of S3 URIs to process in the format of s3://bucket_name/path
+ * INPUT_DATA: list of S3 URIs to process in the format of s3://bucket_name/path or file://absolute/path
  * OUTPUT_RESULTS_FUNC: function that's called when the job is finished, takes no arguments
 
 ## smr scripts
@@ -55,7 +55,6 @@ The most important parameters that you should implement in config are:
 
 ## TODO
  * add option to output results to s3
- * add option to process local data instead of s3
  * better documentation
  * add simple examples & data sets
  * add ability for multi-level reducers

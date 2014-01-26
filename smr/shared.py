@@ -1,9 +1,7 @@
-import boto
 import datetime
 import logging
 import os
 from Queue import Empty
-import re
 import sys
 
 LOG_LEVELS = {
@@ -13,9 +11,6 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG
 }
-
-S3_URI_REGEX = re.compile(r"^s3://([^/]+)/?(.*)", re.IGNORECASE)
-S3_BUCKETS = {} # cache s3 buckets to re-use them
 
 def ensure_dir_exists(path):
     dir_name = os.path.dirname(path)
@@ -63,29 +58,6 @@ def configure_logging(config):
     paramiko_level_str = config.PARAMIKO_LOG_LEVEL.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
     logging.getLogger("paramiko").setLevel(paramiko_level)
-
-def get_s3_bucket(bucket_name, config):
-    if bucket_name not in S3_BUCKETS:
-        s3conn = boto.connect_s3(config.AWS_ACCESS_KEY, config.AWS_SECRET_KEY)
-        S3_BUCKETS[bucket_name] = s3conn.get_bucket(bucket_name)
-    return S3_BUCKETS[bucket_name]
-
-def parse_s3_uri(uri):
-    m = S3_URI_REGEX.match(uri)
-    bucket_name = m.group(1)
-    path = m.group(2)
-    return (bucket_name, path)
-
-def get_files_to_process(config):
-    file_names = []
-    logging.info("getting list of files from s3...")
-    for uri in config.INPUT_DATA:
-        bucket_name, path = parse_s3_uri(uri)
-        bucket = get_s3_bucket(bucket_name, config)
-        for key in bucket.list(prefix=path):
-            file_names.append("s3://%s/%s" % (bucket_name, key.name))
-    logging.info("going to process %d files...", len(file_names))
-    return file_names
 
 def reduce_thread(reduce_process, output_queue, abort_event):
     while not abort_event.is_set():

@@ -20,8 +20,6 @@ LOG_FILENAME = "logs/%(config_name)s.log"
 
 """ NUM_WORKERS: number of worker processes to use """
 NUM_WORKERS = 4
-""" DOWNLOAD_RETRIES: number of retries when downloading from S3 """
-DOWNLOAD_RETRIES = 3
 """
 OUTPUT_FILENAME:
   filename where results for this job will be stored.
@@ -38,7 +36,7 @@ AWS_SECRET_KEY = None
 """
 INPUT_DATA:
   List of files/directories that contain input data to be processed
-  for example: ["s3://bucket/path"]
+  for example: ["s3://bucket/path", "file://absolute/path"]
 """
 INPUT_DATA = None
 
