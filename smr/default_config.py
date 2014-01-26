@@ -35,10 +35,12 @@ OUTPUT_FILENAME = "results/%(config_name)s.%(time)s.out"
 AWS_ACCESS_KEY = None
 """ AWS_SECRET_KEY: AWS secret key used for S3 access """
 AWS_SECRET_KEY = None
-""" S3_BUCKET_NAME: S3 bucket name that contains files that we want to process """
-S3_BUCKET_NAME = None
-""" S3_FILE_PREFIXES: list of S3 file prefixes that we're interested in for this job """
-S3_FILE_PREFIXES = [""]
+"""
+INPUT_DATA:
+  List of files/directories that contain input data to be processed
+  for example: ["s3://bucket/path"]
+"""
+INPUT_DATA = None
 
 """ AWS_EC2_REGION: region to use when running ec2 workers """
 AWS_EC2_REGION = "us-east-1"
