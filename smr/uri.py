@@ -51,6 +51,11 @@ URI_REGEXES = [
 
 def get_uris(config):
     file_names = []
+    if config.INPUT_DATA is None:
+        logging.error("you need to provide INPUT_DATA in config")
+        sys.exit(1)
+    if isinstance(config.INPUT_DATA, basestring):
+        config.INPUT_DATA = [config.INPUT_DATA]
     for uri in config.INPUT_DATA:
         for regex, uri_method, dl_method in URI_REGEXES:
             m = regex.match(uri)
