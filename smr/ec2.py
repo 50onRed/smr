@@ -32,6 +32,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
 
     # write first file to mapper
     if not abort_event.is_set() and not write_file_to_descriptor(input_queue, stdin):
+        chan.shutdown_write()
         abort_event.set()
         sys.exit(1)
 
@@ -48,8 +49,18 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
         else:
             logging.error("invalid message received from mapper: %s", line)
 
-        if abort_event.is_set() or not write_file_to_descriptor(input_queue, stdin):
+        if abort_event.is_set():
             break
+        if not write_file_to_descriptor(input_queue, stdin):
+            # stdin.close() is not enough with paramiko to actually close it, need to do this too:
+            chan.shutdown_write()
+            break
+
+        if chan.exit_status_ready():
+            break
+
+    while not chan.exit_status_ready():
+        time.sleep(1)
 
     if not abort_event.is_set():
         exit_code = chan.recv_exit_status()
