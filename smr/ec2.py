@@ -48,11 +48,8 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
         else:
             logging.error("invalid message received from mapper: %s", line)
 
-        if abort_event.is_set():
+        if abort_event.is_set() or not write_file_to_descriptor(input_queue, stdin):
             break
-
-        # finish reading stderr even if we close stdin
-        write_file_to_descriptor(input_queue, stdin) # finish reading stderr even if we close stdin
 
     if not abort_event.is_set():
         exit_code = chan.recv_exit_status()
