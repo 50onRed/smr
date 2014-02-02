@@ -8,7 +8,8 @@ build:
         name: setup virtual environment
 
     # A step that executes `pip install` command.
-    - pip-install
+    - pip-install:
+        packages_list: "pylint==1.1.0"
 
     # A custom script step, name value is used in the UI
     # and the code value contains the command that get executed
@@ -17,4 +18,6 @@ build:
         code: |
           echo "python version $(python --version) running"
           echo "pip version $(pip --version) running"
-
+     - script:
+         name: pylint
+         code: pylint smr
