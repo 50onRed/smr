@@ -18,6 +18,6 @@ build:
         code: |
           echo "python version $(python --version) running"
           echo "pip version $(pip --version) running"
-     - script:
-         name: pylint
-         code: pylint smr
+    - script:
+        name: pylint
+        code: pylint smr
