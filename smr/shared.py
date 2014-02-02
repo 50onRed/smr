@@ -74,6 +74,7 @@ def reduce_thread(reduce_process, output_queue, abort_event):
             output_queue.task_done()
         except Empty:
             pass
+    reduce_process.stdin.close()
 
 def progress_thread(processed_files_queue, files_total, abort_event):
     files_processed = 0

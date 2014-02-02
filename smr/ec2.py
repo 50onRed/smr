@@ -223,6 +223,9 @@ def main():
 
     conn.terminate_instances(instance_ids)
     abort_event.set()
+    # wait for reduce to finish before exiting
+    reduce_worker.join()
+    reduce_process.wait()
     reduce_stdout.close()
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
     sys.stderr.write("results are in %s\n" % (config.OUTPUT_FILENAME))
