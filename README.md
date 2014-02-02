@@ -3,6 +3,8 @@
 smr lets you easily build map-reduce jobs with simple python code.
 It does not use hadoop, or any other map-reduce framework in any way.
 
+[![wercker status](https://app.wercker.com/status/f23eabc2fec80a2ccd09ee7126c9b140/m "wercker status")](https://app.wercker.com/project/bykey/f23eabc2fec80a2ccd09ee7126c9b140)
+
 ## Installation
 `pip install git+git://github.com/idyedov/smr.git`
 or just
