@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 
 S3_BUCKETS = {} # cache s3 buckets to re-use them
 
