@@ -20,4 +20,4 @@ build:
           echo "pip version $(pip --version) running"
     - script:
         name: pylint
-        code: pylint smr;echo $?
+        code: pylint smr||echo $?
