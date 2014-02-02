@@ -9,13 +9,13 @@ or just
 ```python setup.py install```
 
 ### Dependencies
-  boto is required for communication with AWS services like S3
-  paramiko is required for smr-ec2 to communicate with EC2 instances through SSH
+ * boto is required for communication with AWS services like S3
+ * paramiko is required for smr-ec2 to communicate with EC2 instances through SSH
 
 ## Usage
-  ```smr config.py```
-  or
-  ```smr-ec2 config.py```
+```smr config.py``` or ```smr-ec2 config.py```
+
+jobs directory has a sample job that uses common crawl public dataset on S3.
 
 ### config.py
 config.py has all the information about the job you want to run, including
@@ -56,9 +56,9 @@ The most important parameters that you should implement in config are:
 ## TODO
  * add option to output results to s3
  * don't allow smr-ec2 to run if there's local files in INPUT_DATA
+ * add option to provide http and ftp urls in INPUT_DATA
  * initialize ec2 instances in parallel
  * better documentation
  * benchmark against other map-reduce frameworks
- * add simple examples & data sets
  * add ability for multi-level reducers
  * python3 support
