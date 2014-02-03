@@ -11,8 +11,7 @@ import sys
 import threading
 import time
 
-from .shared import get_config, configure_logging, reduce_thread, progress_thread, \
-    write_file_to_descriptor
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -90,12 +89,12 @@ def wait_for_instance(instance):
     logging.info("New instance %s started: %s", instance.id, instance.ip_address)
     return True
 
-def initialize_instance(config, config_name, instance):
+def initialize_instance(config, instance):
     ssh = get_ssh_connection()
     logging.info("waiting for ssh on instance %s %s ...", instance.id, instance.ip_address)
     while True:
         try:
-            ssh.connect(instance.ip_address, username=config.AWS_EC2_SSH_USERNAME, key_filename=os.path.expanduser(config.AWS_EC2_LOCAL_KEYFILE))
+            ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
         except:
             sys.stderr.write(".")
             sys.stderr.flush()
@@ -124,7 +123,7 @@ def initialize_instance(config, config_name, instance):
 
     # copy config to this instance
     sftp = ssh.open_sftp()
-    sftp.put(config_name, config.AWS_EC2_REMOTE_CONFIG_PATH)
+    sftp.put(config.config, config.aws_ec2_remote_config_path)
     sftp.close()
 
     ssh.close()
@@ -132,17 +131,10 @@ def initialize_instance(config, config_name, instance):
     return True
 
 def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: smr-ec2 config.py\n")
-        sys.exit(1)
+    config = get_config()
+    print "logging to %s" % (config.log_filename)
 
-    config_name = sys.argv[1]
-    config = get_config(config_name)
-
-    configure_logging(config)
-    print "logging to %s" % (config.LOG_FILENAME)
-
-    if not config.AWS_EC2_KEYNAME:
+    if not config.aws_ec2_keyname:
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)
 
@@ -157,10 +149,10 @@ def main():
 
     start_time = datetime.datetime.now()
 
-    conn = boto.ec2.connect_to_region(config.AWS_EC2_REGION, aws_access_key_id=config.AWS_ACCESS_KEY, aws_secret_access_key=config.AWS_SECRET_KEY)
-    reservation = conn.run_instances(image_id=config.AWS_EC2_AMI, min_count=config.AWS_EC2_WORKERS, max_count=config.AWS_EC2_WORKERS, \
-                                     key_name=config.AWS_EC2_KEYNAME, instance_type=config.AWS_EC2_INSTANCE_TYPE, security_groups=config.AWS_EC2_SECURITY_GROUPS)
-    logging.info("requested to start %d instances", config.AWS_EC2_WORKERS)
+    conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
+    reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
+                                     key_name=config.aws_ec2_keyname, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
+    logging.info("requested to start %d instances", config.aws_ec2_workers)
     instances = reservation.instances
     instance_ids = [instance.id for instance in instances]
     for instance in instances:
@@ -169,7 +161,7 @@ def main():
             conn.terminate_instances(instance_ids)
             sys.exit(1)
 
-        if not initialize_instance(config, config_name, instance):
+        if not initialize_instance(config, instance):
             sys.stderr.write("could not initialize workers, terminating all instances: %s\n" % ",".join(instance_ids))
             conn.terminate_instances(instance_ids)
             sys.exit(1)
@@ -177,18 +169,18 @@ def main():
     abort_event = threading.Event()
     workers = []
     for instance in instances:
-        for i in xrange(config.NUM_WORKERS):
+        for i in xrange(config.workers):
 
             ssh = get_ssh_connection()
             try:
-                ssh.connect(instance.ip_address, username=config.AWS_EC2_SSH_USERNAME, key_filename=os.path.expanduser(config.AWS_EC2_LOCAL_KEYFILE))
+                ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
             except:
                 logging.error("could not ssh to %s %s", instance.id, instance.ip_address)
                 abort_event.set()
                 sys.exit(1)
 
             chan = ssh.get_transport().open_session()
-            chan.exec_command("smr-map %s" % (config.AWS_EC2_REMOTE_CONFIG_PATH))
+            chan.exec_command("smr-map %s" % (config.aws_ec2_remote_config_path))
 
             stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
             stdout_thread.daemon = True
@@ -200,8 +192,8 @@ def main():
 
             workers.append(stderr_thread)
 
-    reduce_stdout = open(config.OUTPUT_FILENAME, "w")
-    reduce_process = subprocess.Popen(["smr-reduce", config_name], stdin=subprocess.PIPE, stdout=reduce_stdout)
+    reduce_stdout = open(config.output_filename, "w")
+    reduce_process = subprocess.Popen(["smr-reduce"] + sys.argv[1:], stdin=subprocess.PIPE, stdout=reduce_stdout)
 
     reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
     #reduce_worker.daemon = True
@@ -218,7 +210,7 @@ def main():
         abort_event.set()
         conn.terminate_instances(instance_ids)
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-        sys.stderr.write("partial results are in %s\n" % (config.OUTPUT_FILENAME))
+        sys.stderr.write("partial results are in %s\n" % (config.output_filename))
         sys.exit(1)
 
     conn.terminate_instances(instance_ids)
@@ -228,4 +220,4 @@ def main():
     reduce_process.wait()
     reduce_stdout.close()
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-    sys.stderr.write("results are in %s\n" % (config.OUTPUT_FILENAME))
+    sys.stderr.write("results are in %s\n" % (config.output_filename))

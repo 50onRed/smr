@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 
-from .shared import get_config, configure_logging
+from .shared import get_config
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
@@ -12,12 +12,7 @@ def write_to_stderr(prefix, file_name):
     sys.stderr.flush()
 
 def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: smr-map config.py\n")
-        sys.exit(1)
-
-    config = get_config(sys.argv[1])
-    configure_logging(config)
+    config = get_config()
 
     try:
         logging.debug("mapper starting to read stdin")
