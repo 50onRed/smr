@@ -6,8 +6,7 @@ import subprocess
 import sys
 import threading
 
-from .shared import get_config, configure_logging, reduce_thread, progress_thread, \
-    write_file_to_descriptor
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -49,15 +48,8 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
     map_process.wait()
 
 def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: smr config.py\n")
-        sys.exit(1)
-
-    config_name = sys.argv[1]
-    config = get_config(config_name)
-
-    configure_logging(config)
-    print "logging to %s" % (config.LOG_FILENAME)
+    config = get_config()
+    print "logging to %s" % (config.log_filename)
 
     file_names = get_uris(config)
     files_total = len(file_names)
@@ -72,8 +64,8 @@ def main():
     abort_event = threading.Event()
 
     read_workers = []
-    for i in xrange(config.NUM_WORKERS):
-        map_process = subprocess.Popen(["smr-map", config_name], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    for i in xrange(config.workers):
+        map_process = subprocess.Popen(["smr-map"] + sys.argv[1:], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         row = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, map_process, abort_event))
         row.daemon = True
@@ -84,8 +76,8 @@ def main():
         rew.start()
         read_workers.append(rew)
 
-    reduce_stdout = open(config.OUTPUT_FILENAME, "w")
-    reduce_process = subprocess.Popen(["smr-reduce", config_name], bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout)
+    reduce_stdout = open(config.output_filename, "w")
+    reduce_process = subprocess.Popen(["smr-reduce"] + sys.argv[1:], bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout)
 
     reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
     #reduce_worker.daemon = True
@@ -101,7 +93,7 @@ def main():
     except KeyboardInterrupt:
         abort_event.set()
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-        sys.stderr.write("partial results are in %s\n" % (config.OUTPUT_FILENAME))
+        sys.stderr.write("partial results are in %s\n" % (config.output_filename))
         sys.exit(1)
 
     abort_event.set()
@@ -110,4 +102,4 @@ def main():
     reduce_process.wait()
     reduce_stdout.close()
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-    sys.stderr.write("results are in %s\n" % (config.OUTPUT_FILENAME))
+    sys.stderr.write("results are in %s\n" % (config.output_filename))

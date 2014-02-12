@@ -10,7 +10,7 @@ S3_BUCKETS = {} # cache s3 buckets to re-use them
 
 def get_s3_bucket(bucket_name, config):
     if bucket_name not in S3_BUCKETS:
-        s3conn = boto.connect_s3(config.AWS_ACCESS_KEY, config.AWS_SECRET_KEY)
+        s3conn = boto.connect_s3(config.aws_access_key, config.aws_secret_key)
         S3_BUCKETS[bucket_name] = s3conn.get_bucket(bucket_name)
     return S3_BUCKETS[bucket_name]
 
@@ -52,12 +52,12 @@ URI_REGEXES = [
 
 def get_uris(config):
     file_names = []
-    if config.INPUT_DATA is None:
-        logging.error("you need to provide INPUT_DATA in config")
+    if config.input_data is None:
+        logging.error("you need to provide INPUT_DATA in config or as an argument")
         sys.exit(1)
-    if isinstance(config.INPUT_DATA, basestring):
-        config.INPUT_DATA = [config.INPUT_DATA]
-    for uri in config.INPUT_DATA:
+    if isinstance(config.input_data, basestring):
+        config.input_data = [config.input_data]
+    for uri in config.input_data:
         for regex, uri_method, dl_method in URI_REGEXES:
             m = regex.match(uri)
             if m is not None:

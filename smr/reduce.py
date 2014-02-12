@@ -2,15 +2,10 @@
 import logging
 import sys
 
-from .shared import get_config, configure_logging
+from .shared import get_config
 
 def main():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: smr-reduce config.py\n")
-        sys.exit(1)
-
-    config = get_config(sys.argv[1])
-    configure_logging(config)
+    config = get_config()
 
     try:
         for result in iter(sys.stdin.readline, ""):

@@ -1,8 +1,11 @@
+import argparse
 import datetime
 import logging
 import os
 from Queue import Empty
 import sys
+
+from . import __version__
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
@@ -17,7 +20,29 @@ def ensure_dir_exists(path):
     if dir_name != '' and not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
-def get_config(config_name):
+def get_config():
+    if len(sys.argv) < 2:
+        sys.stderr.write("usage: %s config.py\n" % (os.path.basename(sys.argv[0])))
+        sys.exit(1)
+
+    # this needs to be separate from argparse
+    config_name = sys.argv[1]
+    config = get_config_module(config_name)
+
+    parser = get_arg_parser(config)
+    args = parser.parse_args()
+
+    # add extra options to args that cannot be specified in cli
+    args.MAP_FUNC = config.MAP_FUNC
+    args.REDUCE_FUNC = config.REDUCE_FUNC
+    args.OUTPUT_RESULTS_FUNC = config.OUTPUT_RESULTS_FUNC
+    args.AWS_EC2_INITIALIZE_SMR_COMMANDS = config.AWS_EC2_INITIALIZE_SMR_COMMANDS
+
+    configure_logging(args)
+
+    return args
+
+def get_config_module(config_name):
     if config_name.endswith(".py"):
         config_name = config_name[:-3]
     elif config_name.endswith(".pyc"):
@@ -46,16 +71,54 @@ def get_config(config_name):
 
     return config
 
+def get_arg_parser(config):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config", help="config.py")
+
+    parser.add_argument("--log-level", help="level of logging to be used for this job", choices=LOG_LEVELS.keys(), default=config.LOG_LEVEL)
+    parser.add_argument("--paramiko-log-level", help="level of logging to be used for paramiko ssh connections (for smr-ec2 only)", choices=LOG_LEVELS.keys(), default=config.PARAMIKO_LOG_LEVEL)
+    parser.add_argument("--log-format", help="""
+format of log messages. available format params are:
+ - message: actual log message
+ - levelname: message log level
+""", default=config.LOG_FORMAT)
+    parser.add_argument("--log-filename", help="""
+filename where log output for this job will be stored. available format params are:
+ - config_name: basename of config file that's passed to smr
+""", default=config.LOG_FILENAME)
+    parser.add_argument("-w", "--workers", type=int, help="number of worker processes to use", default=config.NUM_WORKERS)
+    parser.add_argument("--output-filename", help="""
+filename where results for this job will be stored. available format params are:
+ - config_name: basename of config file that's passed to smr
+ - time: current date and time
+""", default=config.OUTPUT_FILENAME)
+    parser.add_argument("--input-data", help="List of files/directort URIs that contain input data to be processed. for example: ['s3://bucket/path', 'file://absolute/path']", nargs="*", default=config.INPUT_DATA)
+    parser.add_argument("--aws-access-key", help="AWS access key used for S3/EC2 access", default=config.AWS_ACCESS_KEY)
+    parser.add_argument("--aws-secret-key", help="AWS secret key used for S3/EC2 access", default=config.AWS_SECRET_KEY)
+    parser.add_argument("--aws-ec2-region", help="region to use when running smr-ec2 workers", default=config.AWS_EC2_REGION)
+    parser.add_argument("--aws-ec2-ami", help="AMI to use when running smr-ec2 workers", default=config.AWS_EC2_AMI)
+    parser.add_argument("--aws-ec2-instance-type", help="instance type to use for EC2 instances", default=config.AWS_EC2_INSTANCE_TYPE)
+    parser.add_argument("--aws-ec2-keyname", help="keyname to use for starting EC2 instances", default=config.AWS_EC2_KEYNAME)
+    parser.add_argument("--aws-ec2-local-keyfile", help="local private key file used for ssh access to EC2 instances", default=config.AWS_EC2_LOCAL_KEYFILE)
+    parser.add_argument("--aws-ec2-security-group", help="security group to use for accessing EC2 workers (needs port 22 open)", nargs="*", default=config.AWS_EC2_SECURITY_GROUPS)
+    parser.add_argument("--aws-ec2-ssh-username", help="username to use when logging into EC2 workers over SSH", default=config.AWS_EC2_SSH_USERNAME)
+    parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=config.AWS_EC2_WORKERS)
+    parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default=config.AWS_EC2_REMOTE_CONFIG_PATH)
+
+    parser.add_argument("--version", action="version", version="%s %s" % (os.path.basename(sys.argv[0]), __version__))
+
+    return parser
+
 def configure_logging(config):
-    level_str = config.LOG_LEVEL.lower()
+    level_str = config.log_level.lower()
     level = LOG_LEVELS.get(level_str, logging.INFO)
-    ensure_dir_exists(config.LOG_FILENAME)
-    logging.basicConfig(level=level, format=config.LOG_FORMAT, filename=config.LOG_FILENAME)
+    ensure_dir_exists(config.log_filename)
+    logging.basicConfig(level=level, format=config.log_format, filename=config.log_filename)
 
     if level_str not in LOG_LEVELS:
-        logging.warn("invalid value for LOG_LEVEL: %s", config.LOG_LEVEL)
+        logging.warn("invalid value for LOG_LEVEL: %s", config.log_level)
 
-    paramiko_level_str = config.PARAMIKO_LOG_LEVEL.lower()
+    paramiko_level_str = config.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
     logging.getLogger("paramiko").setLevel(paramiko_level)
 
