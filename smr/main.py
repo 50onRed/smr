@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import curses
 import datetime
 import logging
 from Queue import Queue
@@ -47,9 +48,18 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
 
     map_process.wait()
 
+def end_curses(window):
+    window.keypad(0)
+    curses.nocbreak()
+    curses.echo()
+    curses.endwin()
+
 def main():
     config = get_config()
     print "logging to %s" % (config.log_filename)
+
+    window = curses.initscr()
+    curses.endwin()
 
     file_names = get_uris(config)
     files_total = len(file_names)
@@ -94,6 +104,7 @@ def main():
         abort_event.set()
         sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
         sys.stderr.write("partial results are in %s\n" % (config.output_filename))
+        end_curses(window)
         sys.exit(1)
 
     abort_event.set()
@@ -101,5 +112,6 @@ def main():
     reduce_worker.join()
     reduce_process.wait()
     reduce_stdout.close()
+    end_curses(window)
     sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
     sys.stderr.write("results are in %s\n" % (config.output_filename))
