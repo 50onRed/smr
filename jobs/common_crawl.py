@@ -27,6 +27,8 @@ global_result = {}
 # AWS_EC2_KEYNAME = ''
 # AWS_EC2_LOCAL_KEYFILE = ''
 
+PIP_REQUIREMENTS = ["warc"]
+
 def MAP_FUNC(file_name):
     result = {}
 

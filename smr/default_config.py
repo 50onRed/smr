@@ -21,6 +21,7 @@ AWS_EC2_REMOTE_CONFIG_PATH = "/tmp/smr_config.py"
 #from . import __version__
 #AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev", "sudo pip install smr==%s" % __version__]
 AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev git", "sudo pip install git+git://github.com/idyedov/smr.git"]
+PIP_REQUIREMENTS = None
 
 # MAP_FUNC:
 #   map function that will process input data

@@ -104,6 +104,7 @@ filename where results for this job will be stored. available format params are:
     parser.add_argument("--aws-ec2-ssh-username", help="username to use when logging into EC2 workers over SSH", default=config.AWS_EC2_SSH_USERNAME)
     parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=config.AWS_EC2_WORKERS)
     parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default=config.AWS_EC2_REMOTE_CONFIG_PATH)
+    parser.add_argument("--pip-requirements", help="List of extra python packages needed for this job. for example: ['warc']", nargs="*", default=config.PIP_REQUIREMENTS)
 
     parser.add_argument("--version", action="version", version="%s %s" % (os.path.basename(sys.argv[0]), __version__))
 

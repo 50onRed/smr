@@ -106,20 +106,11 @@ def initialize_instance(config, instance):
 
     # initialize smr on this ec2 instance
     for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
-        chan = ssh.get_transport().open_session()
-        chan.exec_command(command)
-        stdout = chan.makefile("rb")
-        stderr = chan.makefile_stderr("rb")
-        for line in iter(stdout.readline, ""):
-            logging.debug(line.rstrip())
-        for line in iter(stderr.readline, ""):
-            logging.warn(line.rstrip())
-        exit_code = chan.recv_exit_status()
-        if exit_code != 0:
-            logging.error("instance %s invalid exit code of %s: %d", instance.id, command, exit_code)
-            ssh.close() # closes chan as well
-            return False
-        logging.info("instance %s successfully ran %s", instance.id, command)
+        run_command(ssh, instance, command)
+
+    if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
+        for package in config.PIP_REQUIREMENTS:
+            run_command(ssh, instance, "sudo pip install %s" % (package))
 
     # copy config to this instance
     sftp = ssh.open_sftp()
@@ -129,6 +120,22 @@ def initialize_instance(config, instance):
     ssh.close()
     logging.info("instance %s successfully initialized", instance.id)
     return True
+
+def run_command(ssh, instance, command):
+    chan = ssh.get_transport().open_session()
+    chan.exec_command(command)
+    stdout = chan.makefile("rb")
+    stderr = chan.makefile_stderr("rb")
+    for line in iter(stdout.readline, ""):
+        logging.debug(line.rstrip())
+    for line in iter(stderr.readline, ""):
+        logging.warn(line.rstrip())
+    exit_code = chan.recv_exit_status()
+    if exit_code != 0:
+        logging.error("instance %s invalid exit code of %s: %d", instance.id, command, exit_code)
+        ssh.close() # closes chan as well
+        return False
+    logging.info("instance %s successfully ran %s", instance.id, command)
 
 def main():
     config = get_config()
