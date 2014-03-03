@@ -1,7 +1,9 @@
 import argparse
+import curses
 import datetime
 import logging
 import os
+import psutil
 from Queue import Empty
 import sys
 
@@ -140,14 +142,39 @@ def reduce_thread(reduce_process, output_queue, abort_event):
             pass
     reduce_process.stdin.close()
 
-def progress_thread(processed_files_queue, files_total, abort_event):
+def curses_thread(abort_event, map_processes, reduce_processes, window, start_time):
+    map_pids = [psutil.Process(x.pid) for x in map_processes]
+    reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
+    while not abort_event.is_set() and not abort_event.wait(1.0):
+        #curses.endwin()
+        window.clear()
+        now = datetime.datetime.now()
+        window.addstr(0, 0, "smr v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
+        #overwrite_line(window, 1, "master job progress: {0:%}".format(files_processed / float(files_total)))
+        #overwrite_line(window, 2, "last file processed: %s" % (file_name))
+        i = 1
+        for p in map_pids:
+            print_pid(p, window, i, "smr-map")
+            i += 1
+        for p in reduce_pids:
+            print_pid(p, window, i, "smr-reduce")
+            i += 1
+        window.refresh()
+
+def print_pid(process, window, line_num, process_name):
+    try:
+        cpu_percent = process.get_cpu_percent(1.0)
+    except:
+        cpu_percent = 0.0
+    window.addstr(line_num, 0, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
+
+def progress_thread(processed_files_queue, abort_event):
     files_processed = 0
     while not abort_event.is_set():
         try:
             file_name = processed_files_queue.get(timeout=2)
             logging.debug("master received signal that %s is processed", file_name)
             files_processed += 1
-            sys.stderr.write("\rprocessed {0:%}".format(files_processed / float(files_total)))
             processed_files_queue.task_done()
         except Empty:
             pass
