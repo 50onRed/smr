@@ -19,6 +19,14 @@ except ImportError:
 INPUT_DATA = "s3://aws-publicdatasets/common-crawl/crawl-002/2010/09/25/45"
 global_result = {}
 
+# These are required to run smr-ec2, 
+# they can also be passed on the command line, 
+# as: --aws-access-key, --aws-secret-key, --aws-ec2-keyname, --aws-ec2-local-keyfile
+# AWS_ACCESS_KEY = ''
+# AWS_SECRET_KEY = ''
+# AWS_EC2_KEYNAME = ''
+# AWS_EC2_LOCAL_KEYFILE = ''
+
 def MAP_FUNC(file_name):
     result = {}
 
