@@ -71,16 +71,17 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
 def wait_for_instance(instance):
     """ wait for instance status to be 'running' in which case return True, False otherwise """
 
-    status = instance.update()
+    status = None
+    logging.info("getting status for instance %s ...", instance.id)
+    while status is None:
+        status = instance.update()
+        if status is None:
+            time.sleep(2)
     logging.info("waiting for instance %s ...", instance.id)
 
     while status == "pending":
-        sys.stderr.write(".")
-        sys.stderr.flush()
         time.sleep(2)
         status = instance.update()
-
-    sys.stderr.write("\n")
 
     if status != "running":
         logging.error("Invalid status when starting instance %s: %s", instance.id, status)
@@ -89,20 +90,21 @@ def wait_for_instance(instance):
     logging.info("New instance %s started: %s", instance.id, instance.ip_address)
     return True
 
-def initialize_instance(config, instance):
+def initialize_instance_thread(config, instance, abort_event):
+    if not wait_for_instance(instance):
+        abort_event.set()
+        return
+
     ssh = get_ssh_connection()
     logging.info("waiting for ssh on instance %s %s ...", instance.id, instance.ip_address)
     while True:
         try:
             ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
         except:
-            sys.stderr.write(".")
-            sys.stderr.flush()
             time.sleep(2)
             continue
         else:
             break
-    sys.stderr.write("\n")
 
     # initialize smr on this ec2 instance
     for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
@@ -119,7 +121,6 @@ def initialize_instance(config, instance):
 
     ssh.close()
     logging.info("instance %s successfully initialized", instance.id)
-    return True
 
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
@@ -162,22 +163,24 @@ def main():
     logging.info("requested to start %d instances", config.aws_ec2_workers)
     instances = reservation.instances
     instance_ids = [instance.id for instance in instances]
-    for instance in instances:
-        if not wait_for_instance(instance):
-            sys.stderr.write("requested instances did not start, terminating all instances: %s\n" % ",".join(instance_ids))
-            conn.terminate_instances(instance_ids)
-            sys.exit(1)
-
-        if not initialize_instance(config, instance):
-            sys.stderr.write("could not initialize workers, terminating all instances: %s\n" % ",".join(instance_ids))
-            conn.terminate_instances(instance_ids)
-            sys.exit(1)
-
     abort_event = threading.Event()
+    initialization_threads = []
+    for instance in instances:
+        initialization_thread = threading.Thread(target=initialize_instance_thread, args=(config, instance, abort_event))
+        initialization_thread.start()
+        initialization_threads.append(initialization_thread)
+
+    for initialization_thread in initialization_threads:
+        initialization_thread.join()
+
+    if abort_event.is_set():
+        sys.stderr.write("could not initialize workers, terminating all instances: %s\n" % ",".join(instance_ids))
+        conn.terminate_instances(instance_ids)
+        sys.exit(1)
+
     workers = []
     for instance in instances:
         for i in xrange(config.workers):
-
             ssh = get_ssh_connection()
             try:
                 ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
