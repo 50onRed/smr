@@ -58,10 +58,10 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
         if chan.exit_status_ready():
             break
 
-    while not chan.exit_status_ready():
-        time.sleep(1)
-
     if not abort_event.is_set():
+        while not chan.exit_status_ready():
+            time.sleep(1)
+
         exit_code = chan.recv_exit_status()
         if exit_code != 0:
             logging.error("map process exited with code %d", exit_code)
