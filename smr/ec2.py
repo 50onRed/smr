@@ -108,8 +108,8 @@ def initialize_instance(config, instance):
     for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
         run_command(ssh, instance, command)
 
-    if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
-        for package in config.PIP_REQUIREMENTS:
+    if config.pip_requirements is not None and len(config.pip_requirements) > 0:
+        for package in config.pip_requirements:
             run_command(ssh, instance, "sudo pip install %s" % (package))
 
     # copy config to this instance
