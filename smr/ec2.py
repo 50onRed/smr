@@ -146,6 +146,7 @@ def main():
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)
 
+    print "getting list of the files to process..."
     file_names = get_uris(config)
     files_total = len(file_names)
 

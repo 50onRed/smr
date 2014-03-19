@@ -1,5 +1,4 @@
 import argparse
-import curses
 import datetime
 import logging
 import os
@@ -16,6 +15,8 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG
 }
+CPU_USAGE_INTERVAL = 0.1
+CURSES_REFRESH_INTERVAL = 1.0
 
 def ensure_dir_exists(path):
     dir_name = os.path.dirname(path)
@@ -145,13 +146,11 @@ def reduce_thread(reduce_process, output_queue, abort_event):
 def curses_thread(abort_event, map_processes, reduce_processes, window, start_time):
     map_pids = [psutil.Process(x.pid) for x in map_processes]
     reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
-    while not abort_event.is_set() and not abort_event.wait(1.0):
-        #curses.endwin()
+    sleep_time = CURSES_REFRESH_INTERVAL - (CPU_USAGE_INTERVAL * (len(map_pids) + len(reduce_pids)))
+    while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
         window.clear()
         now = datetime.datetime.now()
         window.addstr(0, 0, "smr v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
-        #overwrite_line(window, 1, "master job progress: {0:%}".format(files_processed / float(files_total)))
-        #overwrite_line(window, 2, "last file processed: %s" % (file_name))
         i = 1
         for p in map_pids:
             print_pid(p, window, i, "smr-map")
@@ -159,11 +158,12 @@ def curses_thread(abort_event, map_processes, reduce_processes, window, start_ti
         for p in reduce_pids:
             print_pid(p, window, i, "smr-reduce")
             i += 1
-        window.refresh()
+        if not abort_event.is_set():
+            window.refresh()
 
 def print_pid(process, window, line_num, process_name):
     try:
-        cpu_percent = process.get_cpu_percent(1.0)
+        cpu_percent = process.get_cpu_percent(0.1)
     except:
         cpu_percent = 0.0
     window.addstr(line_num, 0, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
