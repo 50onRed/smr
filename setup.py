@@ -11,7 +11,7 @@ setup(
     author_email='ivan@dyedov.com',
     url='',
     packages=['smr'],
-    install_requires=['boto>=2.26.0', 'paramiko>=1.12.2', 'psutil>=1.2.1'],
+    install_requires=['boto>=2.27.0', 'paramiko>=1.13.0', 'psutil>=2.0.0'],
     entry_points={
         'console_scripts': [
             'smr = smr.main:main',
