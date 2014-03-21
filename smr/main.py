@@ -2,12 +2,14 @@
 import curses
 import datetime
 import logging
+import psutil
 from Queue import Queue
 import subprocess
 import sys
 import threading
 
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, curses_thread
+from . import __version__
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -48,12 +50,30 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
 
     map_process.wait()
 
+def curses_thread(config, abort_event, map_processes, reduce_processes, window, start_time, files_total):
+    map_pids = [psutil.Process(x.pid) for x in map_processes]
+    reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
+    sleep_time = config.screen_refresh_interval - (config.cpu_usage_interval * (len(map_pids) + len(reduce_pids)))
+    while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
+        window.clear()
+        now = datetime.datetime.now()
+        window.addstr(0, 0, "smr v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
+        i = 1
+        for p in map_pids:
+            print_pid(p, window, i, "smr-map")
+            i += 1
+        for p in reduce_pids:
+            print_pid(p, window, i, "smr-reduce")
+            i += 1
+
+        window.addstr(i + 1, 0, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        if not abort_event.is_set():
+            window.refresh()
+
 def main():
     config = get_config()
     print "logging to %s" % (config.log_filename)
     print "getting list of the files to process..."
-
-    window = curses.initscr()
 
     file_names = get_uris(config)
     files_total = len(file_names)
@@ -69,7 +89,7 @@ def main():
 
     map_processes = []
     read_workers = []
-    for i in xrange(config.workers):
+    for _ in xrange(config.workers):
         map_process = subprocess.Popen(["smr-map"] + sys.argv[1:], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         map_processes.append(map_process)
 
@@ -93,7 +113,8 @@ def main():
     #progress_worker.daemon = True
     progress_worker.start()
 
-    curses_worker = threading.Thread(target=curses_thread, args=(abort_event, map_processes, [reduce_process], window, start_time))
+    window = curses.initscr()
+    curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, map_processes, [reduce_process], window, start_time, files_total))
     #curses_worker.daemon = True
     curses_worker.start()
 

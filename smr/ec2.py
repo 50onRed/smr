@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 import boto
 import boto.ec2
+import curses
 import datetime
 import logging
 import os
 import paramiko
+import psutil
 from Queue import Queue
 import subprocess
 import sys
 import threading
 import time
 
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor
+from . import __version__
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -138,6 +141,50 @@ def run_command(ssh, instance, command):
         return False
     logging.info("instance %s successfully ran %s", instance.id, command)
 
+def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue):
+    ssh = get_ssh_connection()
+
+    try:
+        ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
+    except:
+        logging.error("could not ssh to %s %s", instance.id, instance.ip_address)
+        abort_event.set()
+        sys.exit(1)
+
+    chan = ssh.get_transport().open_session()
+    chan.exec_command("smr-map %s" % (config.aws_ec2_remote_config_path))
+
+    stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
+    stdout_thread.daemon = True
+    stdout_thread.start()
+
+    stderr_thread = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, ssh, abort_event))
+    stderr_thread.daemon = True
+    stderr_thread.start()
+
+    return stderr_thread
+
+def curses_thread(config, abort_event, instances, reduce_processes, window, start_time, files_total):
+    reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
+    sleep_time = config.screen_refresh_interval - (config.cpu_usage_interval * len(reduce_pids))
+    while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
+        window.clear()
+        now = datetime.datetime.now()
+        window.addstr(0, 0, "smr-ec2 v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
+        i = 1
+        for instance in instances:
+            window.addstr(i, 0, "  instance {0}".format(instance.id))
+            i += 1
+            for _ in xrange(config.workers):
+                window.addstr(i, 0, "    smr-map")
+                i += 1
+        for p in reduce_pids:
+            print_pid(p, window, i, "smr-reduce")
+            i += 1
+        window.addstr(i + 1, 0, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        if not abort_event.is_set():
+            window.refresh()
+
 def main():
     config = get_config()
     print "logging to %s" % (config.log_filename)
@@ -181,27 +228,8 @@ def main():
 
     workers = []
     for instance in instances:
-        for i in xrange(config.workers):
-            ssh = get_ssh_connection()
-            try:
-                ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
-            except:
-                logging.error("could not ssh to %s %s", instance.id, instance.ip_address)
-                abort_event.set()
-                sys.exit(1)
-
-            chan = ssh.get_transport().open_session()
-            chan.exec_command("smr-map %s" % (config.aws_ec2_remote_config_path))
-
-            stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
-            stdout_thread.daemon = True
-            stdout_thread.start()
-
-            stderr_thread = threading.Thread(target=worker_stderr_read_thread, args=(processed_files_queue, input_queue, chan, ssh, abort_event))
-            stderr_thread.daemon = True
-            stderr_thread.start()
-
-            workers.append(stderr_thread)
+        for _ in xrange(config.workers):
+            workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue))
 
     reduce_stdout = open(config.output_filename, "w")
     reduce_process = subprocess.Popen(["smr-reduce"] + sys.argv[1:], stdin=subprocess.PIPE, stdout=reduce_stdout)
@@ -214,14 +242,20 @@ def main():
     #progress_worker.daemon = True
     progress_worker.start()
 
+    window = curses.initscr()
+    curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, workers, [reduce_process], window, start_time, files_total))
+    #curses_worker.daemon = True
+    curses_worker.start()
+
     try:
         for w in workers:
             w.join()
     except KeyboardInterrupt:
         abort_event.set()
         conn.terminate_instances(instance_ids)
-        sys.stderr.write("\ruser aborted. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-        sys.stderr.write("partial results are in %s\n" % (config.output_filename))
+        curses.endwin()
+        print "user aborted. elapsed time: %s" % str(datetime.datetime.now() - start_time)
+        print "partial results are in %s" % (config.output_filename)
         sys.exit(1)
 
     conn.terminate_instances(instance_ids)
@@ -230,5 +264,6 @@ def main():
     reduce_worker.join()
     reduce_process.wait()
     reduce_stdout.close()
-    sys.stderr.write("\rdone. elapsed time: %s\n" % str(datetime.datetime.now() - start_time))
-    sys.stderr.write("results are in %s\n" % (config.output_filename))
+    curses.endwin()
+    print "done. elapsed time: %s\n" % str(datetime.datetime.now() - start_time)
+    print "results are in %s\n" % (config.output_filename)

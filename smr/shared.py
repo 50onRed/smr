@@ -2,7 +2,6 @@ import argparse
 import datetime
 import logging
 import os
-import psutil
 from Queue import Empty
 import sys
 
@@ -15,8 +14,9 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG
 }
-CPU_USAGE_INTERVAL = 0.1
-CURSES_REFRESH_INTERVAL = 1.0
+GLOBAL_SHARED_DATA = {
+    "files_processed": 0
+}
 
 def ensure_dir_exists(path):
     dir_name = os.path.dirname(path)
@@ -29,7 +29,7 @@ def get_config():
         sys.exit(1)
 
     # this needs to be separate from argparse
-    config_name = sys.argv[1]
+    config_name = sys.argv[-1]
     config = get_config_module(config_name)
 
     parser = get_arg_parser(config)
@@ -45,6 +45,9 @@ def get_config():
 
     return args
 
+class DummyConfig(object):
+    pass
+
 def get_config_module(config_name):
     if config_name.endswith(".py"):
         config_name = config_name[:-3]
@@ -57,7 +60,13 @@ def get_config_module(config_name):
     if directory not in sys.path:
         sys.path.insert(0, directory)
 
-    config = __import__(config_module)
+    try:
+        config = __import__(config_module)
+    except ImportError:
+        if not config_module.startswith("-"):
+            sys.stderr.write("Invalid job definition provided: %s\n" % (config_module))
+            sys.exit(1)
+        config = DummyConfig()
 
     # settings that are not overriden need to be set to defaults
     from . import default_config
@@ -108,6 +117,8 @@ filename where results for this job will be stored. available format params are:
     parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=config.AWS_EC2_WORKERS)
     parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default=config.AWS_EC2_REMOTE_CONFIG_PATH)
     parser.add_argument("--pip-requirements", help="List of extra python packages needed for this job. for example: ['warc']", nargs="*", default=config.PIP_REQUIREMENTS)
+    parser.add_argument("--cpu_usage_interval", type=float, help="interval used for measuring CPU usage in seconds", default=config.CPU_REFRESH_INTERVAL)
+    parser.add_argument("--screen_refresh_interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=config.SCREEN_REFRESH_INTERVAL)
 
     parser.add_argument("--version", action="version", version="%s %s" % (os.path.basename(sys.argv[0]), __version__))
 
@@ -143,41 +154,25 @@ def reduce_thread(reduce_process, output_queue, abort_event):
             pass
     reduce_process.stdin.close()
 
-def curses_thread(abort_event, map_processes, reduce_processes, window, start_time):
-    map_pids = [psutil.Process(x.pid) for x in map_processes]
-    reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
-    sleep_time = CURSES_REFRESH_INTERVAL - (CPU_USAGE_INTERVAL * (len(map_pids) + len(reduce_pids)))
-    while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
-        window.clear()
-        now = datetime.datetime.now()
-        window.addstr(0, 0, "smr v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
-        i = 1
-        for p in map_pids:
-            print_pid(p, window, i, "smr-map")
-            i += 1
-        for p in reduce_pids:
-            print_pid(p, window, i, "smr-reduce")
-            i += 1
-        if not abort_event.is_set():
-            window.refresh()
-
 def print_pid(process, window, line_num, process_name):
     try:
-        cpu_percent = process.get_cpu_percent(0.1)
+        cpu_percent = process.cpu_percent(0.1)
     except:
         cpu_percent = 0.0
     window.addstr(line_num, 0, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
 
 def progress_thread(processed_files_queue, abort_event):
-    files_processed = 0
     while not abort_event.is_set():
         try:
             file_name = processed_files_queue.get(timeout=2)
             logging.debug("master received signal that %s is processed", file_name)
-            files_processed += 1
+            GLOBAL_SHARED_DATA["files_processed"] += 1
             processed_files_queue.task_done()
         except Empty:
             pass
+
+def get_param(param):
+    return GLOBAL_SHARED_DATA[param]
 
 def write_file_to_descriptor(input_queue, descriptor):
     """
