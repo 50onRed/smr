@@ -75,22 +75,22 @@ def wait_for_instance(instance):
     """ wait for instance status to be 'running' in which case return True, False otherwise """
 
     status = None
-    logging.info("getting status for instance %s ...", instance.id)
+    print "getting status for instance {0} ...".format(instance.id)
     while status is None:
         status = instance.update()
         if status is None:
             time.sleep(2)
-    logging.info("waiting for instance %s ...", instance.id)
+    print "waiting for instance {0} ...".format(instance.id)
 
     while status == "pending":
         time.sleep(2)
         status = instance.update()
 
     if status != "running":
-        logging.error("Invalid status when starting instance %s: %s", instance.id, status)
+        print "Invalid status when starting instance {0}: {1}".format(instance.id, status)
         return False
 
-    logging.info("New instance %s started: %s", instance.id, instance.ip_address)
+    print "New instance {0} started: {1}".format(instance.id, instance.ip_address)
     return True
 
 def initialize_instance_thread(config, instance, abort_event):
@@ -99,7 +99,7 @@ def initialize_instance_thread(config, instance, abort_event):
         return
 
     ssh = get_ssh_connection()
-    logging.info("waiting for ssh on instance %s %s ...", instance.id, instance.ip_address)
+    print "waiting for ssh on instance {0} {1} ...".format(instance.id, instance.ip_address)
     while True:
         try:
             ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
@@ -115,7 +115,7 @@ def initialize_instance_thread(config, instance, abort_event):
 
     if config.pip_requirements is not None and len(config.pip_requirements) > 0:
         for package in config.pip_requirements:
-            run_command(ssh, instance, "sudo pip install %s" % (package))
+            run_command(ssh, instance, "sudo pip install {0}".format(package))
 
     # copy config to this instance
     sftp = ssh.open_sftp()
@@ -123,7 +123,7 @@ def initialize_instance_thread(config, instance, abort_event):
     sftp.close()
 
     ssh.close()
-    logging.info("instance %s successfully initialized", instance.id)
+    print "instance {0} successfully initialized".format(instance.id)
 
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
@@ -131,15 +131,15 @@ def run_command(ssh, instance, command):
     stdout = chan.makefile("rb")
     stderr = chan.makefile_stderr("rb")
     for line in iter(stdout.readline, ""):
-        logging.debug(line.rstrip())
+        pass
     for line in iter(stderr.readline, ""):
-        logging.warn(line.rstrip())
+        pass
     exit_code = chan.recv_exit_status()
     if exit_code != 0:
-        logging.error("instance %s invalid exit code of %s: %d", instance.id, command, exit_code)
+        print "instance {0} invalid exit code of {1}: {2}".format(instance.id, command, exit_code)
         ssh.close() # closes chan as well
         return False
-    logging.info("instance %s successfully ran %s", instance.id, command)
+    print "instance {0} successfully ran {1}".format(instance.id, command)
 
 def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue):
     ssh = get_ssh_connection()
@@ -147,12 +147,12 @@ def start_worker(config, instance, abort_event, output_queue, processed_files_qu
     try:
         ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
     except:
-        logging.error("could not ssh to %s %s", instance.id, instance.ip_address)
+        print "could not ssh to {0} {1}".format(instance.id, instance.ip_address)
         abort_event.set()
         sys.exit(1)
 
     chan = ssh.get_transport().open_session()
-    chan.exec_command("smr-map %s" % (config.aws_ec2_remote_config_path))
+    chan.exec_command("smr-map {0}".format(" ".join(sys.argv[1:-1] + [config.aws_ec2_remote_config_path])))
 
     stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
     stdout_thread.daemon = True
@@ -170,7 +170,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
     while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
         window.clear()
         now = datetime.datetime.now()
-        window.addstr(0, 0, "smr-ec2 v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
+        window.addstr(0, 0, "smr-ec2 v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
         i = 1
         for instance in instances:
             window.addstr(i, 0, "  instance {0}".format(instance.id))
@@ -187,7 +187,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
 
 def main():
     config = get_config()
-    print "logging to %s" % (config.log_filename)
+    print "logging to {0}".format(config.log_filename)
 
     if not config.aws_ec2_keyname:
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
@@ -208,7 +208,7 @@ def main():
     conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
     reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
                                      key_name=config.aws_ec2_keyname, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
-    logging.info("requested to start %d instances", config.aws_ec2_workers)
+    print "requested to start {0} instances".format(config.aws_ec2_workers)
     instances = reservation.instances
     instance_ids = [instance.id for instance in instances]
     abort_event = threading.Event()
@@ -222,7 +222,7 @@ def main():
         initialization_thread.join()
 
     if abort_event.is_set():
-        sys.stderr.write("could not initialize workers, terminating all instances: %s\n" % ",".join(instance_ids))
+        sys.stderr.write("could not initialize workers, terminating all instances: {0}\n".format(",".join(instance_ids)))
         conn.terminate_instances(instance_ids)
         sys.exit(1)
 
@@ -238,12 +238,12 @@ def main():
     #reduce_worker.daemon = True
     reduce_worker.start()
 
-    progress_worker = threading.Thread(target=progress_thread, args=(processed_files_queue, files_total, abort_event))
+    progress_worker = threading.Thread(target=progress_thread, args=(processed_files_queue, abort_event))
     #progress_worker.daemon = True
     progress_worker.start()
 
     window = curses.initscr()
-    curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, workers, [reduce_process], window, start_time, files_total))
+    curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, files_total))
     #curses_worker.daemon = True
     curses_worker.start()
 
@@ -254,8 +254,8 @@ def main():
         abort_event.set()
         conn.terminate_instances(instance_ids)
         curses.endwin()
-        print "user aborted. elapsed time: %s" % str(datetime.datetime.now() - start_time)
-        print "partial results are in %s" % (config.output_filename)
+        print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
+        print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
 
     conn.terminate_instances(instance_ids)
@@ -265,5 +265,5 @@ def main():
     reduce_process.wait()
     reduce_stdout.close()
     curses.endwin()
-    print "done. elapsed time: %s\n" % str(datetime.datetime.now() - start_time)
-    print "results are in %s\n" % (config.output_filename)
+    print "done. elapsed time: {0}\n".format(str(datetime.datetime.now() - start_time))
+    print "results are in {0}\n".format(config.output_filename)

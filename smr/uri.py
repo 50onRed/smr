@@ -1,6 +1,5 @@
 import boto
 from boto.s3.key import Key
-import logging
 import os
 import re
 import shutil
@@ -53,7 +52,7 @@ URI_REGEXES = [
 def get_uris(config):
     file_names = []
     if config.input_data is None:
-        logging.error("you need to provide INPUT_DATA in config or as an argument")
+        sys.stderr.write("you need to provide INPUT_DATA in config or as an argument\n")
         sys.exit(1)
     if isinstance(config.input_data, basestring):
         config.input_data = [config.input_data]
@@ -63,7 +62,7 @@ def get_uris(config):
             if m is not None:
                 uri_method(m, file_names, config)
                 break
-    logging.info("going to process %d files...", len(file_names))
+    print "going to process {0} files...".format(len(file_names))
     return file_names
 
 def get_download_method(config, uri):
