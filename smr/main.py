@@ -126,9 +126,9 @@ def main():
             w.join()
     except KeyboardInterrupt:
         abort_event.set()
+        curses.endwin()
         print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
         print "partial results are in {0}".format(config.output_filename)
-        curses.endwin()
         sys.exit(1)
 
     abort_event.set()
