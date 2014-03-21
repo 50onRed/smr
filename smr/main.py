@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import curses
 import datetime
-import logging
 import psutil
 from Queue import Queue
 import subprocess
@@ -9,7 +8,7 @@ import sys
 import threading
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, set_param
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -35,12 +34,13 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
         line = line.rstrip() # remove trailing linebreak
         if line.startswith("+"):
             file_name = line[1:]
-            set_param("last_file_processed", file_name)
             processed_files_queue.put(file_name)
         elif line.startswith("!"):
             input_queue.put(line[1:]) # re-queue file
         else:
-            logging.error("invalid message received from mapper: %s", line)
+            # TODO: display this on screen somehow
+            #logging.error("invalid message received from mapper: %s", line)
+            pass
 
         if abort_event.is_set() or not write_file_to_descriptor(input_queue, map_process.stdin):
             break
@@ -72,7 +72,6 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
 
 def main():
     config = get_config()
-    print "logging to {0}".format(config.log_filename)
     print "getting list of the files to process..."
 
     file_names = get_uris(config)

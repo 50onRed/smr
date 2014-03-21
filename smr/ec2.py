@@ -3,7 +3,6 @@ import boto
 import boto.ec2
 import curses
 import datetime
-import logging
 import os
 import paramiko
 import psutil
@@ -14,7 +13,7 @@ import threading
 import time
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, set_param
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -42,11 +41,11 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
         line = line.rstrip() # remove trailing linebreak
         if line.startswith("+"):
             file_name = line[1:]
-            set_param("last_file_processed", file_name)
             processed_files_queue.put(file_name)
         elif line.startswith("!"):
             file_name = line[1:]
-            logging.warn("error processing %s, requeuing...", file_name)
+            # TODO: display this on screen somehow
+            #logging.warn("error processing %s, requeuing...", file_name)
             input_queue.put(file_name) # re-queue file
         else:
             # TODO: can't write to stderr here since we're in curses mode
@@ -65,10 +64,6 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
     if not abort_event.is_set():
         while not chan.exit_status_ready():
             time.sleep(1)
-
-        exit_code = chan.recv_exit_status()
-        if exit_code != 0:
-            logging.error("map process exited with code %d", exit_code)
 
     ssh.close()
 
@@ -163,7 +158,7 @@ def start_worker(config, instance, abort_event, output_queue, processed_files_qu
     stderr_thread.daemon = True
     stderr_thread.start()
 
-    return stderr_thread
+    return (chan, stderr_thread)
 
 def curses_thread(config, abort_event, instances, reduce_processes, window, start_time, files_total):
     reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
@@ -189,7 +184,6 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
 
 def main():
     config = get_config()
-    print "logging to {0}".format(config.log_filename)
 
     if not config.aws_ec2_keyname:
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
@@ -250,7 +244,7 @@ def main():
     curses_worker.start()
 
     try:
-        for w in workers:
+        for _, w in workers:
             w.join()
     except KeyboardInterrupt:
         abort_event.set()
@@ -263,6 +257,13 @@ def main():
     curses.endwin()
     conn.terminate_instances(instance_ids)
     abort_event.set()
+
+    for chan, _ in workers:
+        exit_code = chan.recv_exit_status()
+        if exit_code != 0:
+            print "map process exited with code {0}".format(exit_code)
+            sys.exit(1)
+
     # wait for reduce to finish before exiting
     reduce_worker.join()
     reduce_process.wait()

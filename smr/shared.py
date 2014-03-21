@@ -145,7 +145,6 @@ def reduce_thread(reduce_process, output_queue, abort_event):
             result = output_queue.get(timeout=2)
             if reduce_process.poll() is not None:
                 # don't want to write if process has already terminated
-                logging.error("reduce process %d ended with code %d", reduce_process.pid, reduce_process.returncode)
                 abort_event.set()
                 break
             reduce_process.stdin.write(result)
@@ -166,17 +165,14 @@ def progress_thread(processed_files_queue, abort_event):
     while not abort_event.is_set():
         try:
             file_name = processed_files_queue.get(timeout=2)
-            logging.debug("master received signal that %s is processed", file_name)
             GLOBAL_SHARED_DATA["files_processed"] += 1
+            GLOBAL_SHARED_DATA["last_file_processed"] = file_name
             processed_files_queue.task_done()
         except Empty:
             pass
 
 def get_param(param):
     return GLOBAL_SHARED_DATA[param]
-
-def set_param(param, value):
-    GLOBAL_SHARED_DATA[param] = value
 
 def write_file_to_descriptor(input_queue, descriptor):
     """
