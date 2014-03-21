@@ -49,6 +49,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
             logging.warn("error processing %s, requeuing...", file_name)
             input_queue.put(file_name) # re-queue file
         else:
+            # TODO: can't write to stderr here since we're in curses mode
             sys.stderr.write("invalid message received from mapper: {0}".format(line))
 
         if abort_event.is_set():
@@ -259,12 +260,16 @@ def main():
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
 
+    curses.endwin()
     conn.terminate_instances(instance_ids)
     abort_event.set()
     # wait for reduce to finish before exiting
     reduce_worker.join()
     reduce_process.wait()
+    if reduce_process.returncode != 0:
+        print "reduce process {0} exited with code {1}\n".format(reduce_process.pid, reduce_process.returncode)
+        print "partial results are in {0}".format(config.output_filename)
+        sys.exit(1)
     reduce_stdout.close()
-    curses.endwin()
     print "done. elapsed time: {0}\n".format(str(datetime.datetime.now() - start_time))
     print "results are in {0}\n".format(config.output_filename)

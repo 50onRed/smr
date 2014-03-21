@@ -22,8 +22,6 @@ def check_map_process(map_process, abort_event):
     map_process.poll()
     if map_process.returncode is not None:
         abort_event.set()
-        sys.stderr.write("map process {0} exited with code {1}\n".format(map_process.pid, map_process.returncode))
-        sys.exit(1)
 
 def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, abort_event):
     check_map_process(map_process, abort_event)
@@ -31,8 +29,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
     # write first file to mapper
     if not abort_event.is_set() and not write_file_to_descriptor(input_queue, map_process.stdin):
         abort_event.set()
-        sys.stderr.write("map process {0} exited with code {1}\n".format(map_process.pid, map_process.returncode))
-        sys.exit(1)
+        return
 
     for line in iter(map_process.stderr.readline, ""):
         line = line.rstrip() # remove trailing linebreak
@@ -131,11 +128,20 @@ def main():
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
 
+    curses.endwin()
     abort_event.set()
+    for map_process in map_processes:
+        if map_process.returncode != 0:
+            print "map process {0} exited with code {1}\n".format(map_process.pid, map_process.returncode)
+            print "partial results are in {0}".format(config.output_filename)
+            sys.exit(1)
     # wait for reduce to finish before exiting
     reduce_worker.join()
     reduce_process.wait()
+    if reduce_process.returncode != 0:
+        print "reduce process {0} exited with code {1}\n".format(reduce_process.pid, reduce_process.returncode)
+        print "partial results are in {0}".format(config.output_filename)
+        sys.exit(1)
     reduce_stdout.close()
-    curses.endwin()
     print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
     print "results are in {0}".format(config.output_filename)
