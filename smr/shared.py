@@ -93,17 +93,7 @@ def get_arg_parser(config):
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="config.py")
 
-    parser.add_argument("--log-level", help="level of logging to be used for this job", choices=LOG_LEVELS.keys(), default=config.LOG_LEVEL)
     parser.add_argument("--paramiko-log-level", help="level of logging to be used for paramiko ssh connections (for smr-ec2 only)", choices=LOG_LEVELS.keys(), default=config.PARAMIKO_LOG_LEVEL)
-    parser.add_argument("--log-format", help="""
-format of log messages. available format params are:
- - message: actual log message
- - levelname: message log level
-""", default=config.LOG_FORMAT)
-    parser.add_argument("--log-filename", help="""
-filename where log output for this job will be stored. available format params are:
- - config_name: basename of config file that's passed to smr
-""", default=config.LOG_FILENAME)
     parser.add_argument("-w", "--workers", type=int, help="number of worker processes to use", default=config.NUM_WORKERS)
     parser.add_argument("--output-filename", help="""
 filename where results for this job will be stored. available format params are:
@@ -131,14 +121,6 @@ filename where results for this job will be stored. available format params are:
     return parser
 
 def configure_logging(config):
-    level_str = config.log_level.lower()
-    level = LOG_LEVELS.get(level_str, logging.INFO)
-    ensure_dir_exists(config.log_filename)
-    logging.basicConfig(level=level, format=config.log_format, filename=config.log_filename)
-
-    if level_str not in LOG_LEVELS:
-        logging.warn("invalid value for LOG_LEVEL: %s", config.log_level)
-
     paramiko_level_str = config.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
     logging.getLogger("paramiko").setLevel(paramiko_level)
