@@ -8,7 +8,7 @@ from .shared import get_config
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
-    sys.stderr.write("%s%s\n" % (prefix, file_name))
+    sys.stderr.write("{0}{1}\n".format(prefix, file_name))
     sys.stderr.flush()
 
 def main():

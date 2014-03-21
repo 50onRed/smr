@@ -22,7 +22,7 @@ def check_map_process(map_process, abort_event):
     map_process.poll()
     if map_process.returncode is not None:
         abort_event.set()
-        logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
+        sys.stderr.write("map process {0} exited with code {1}\n".format(map_process.pid, map_process.returncode))
         sys.exit(1)
 
 def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, abort_event):
@@ -31,7 +31,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
     # write first file to mapper
     if not abort_event.is_set() and not write_file_to_descriptor(input_queue, map_process.stdin):
         abort_event.set()
-        logging.error("map process %d exited with code %d", map_process.pid, map_process.returncode)
+        sys.stderr.write("map process {0} exited with code {1}\n".format(map_process.pid, map_process.returncode))
         sys.exit(1)
 
     for line in iter(map_process.stderr.readline, ""):
@@ -57,7 +57,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
     while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
         window.clear()
         now = datetime.datetime.now()
-        window.addstr(0, 0, "smr v%s - %s - elapsed: %s" % (__version__, datetime.datetime.ctime(now), now - start_time))
+        window.addstr(0, 0, "smr v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
         i = 1
         for p in map_pids:
             print_pid(p, window, i, "smr-map")
@@ -72,7 +72,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
 
 def main():
     config = get_config()
-    print "logging to %s" % (config.log_filename)
+    print "logging to {0}".format(config.log_filename)
     print "getting list of the files to process..."
 
     file_names = get_uris(config)

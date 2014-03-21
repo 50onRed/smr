@@ -1,7 +1,7 @@
 LOG_LEVEL = "info"
 PARAMIKO_LOG_LEVEL = "warning"
-LOG_FORMAT = "%(levelname)s:%(message)s"
-LOG_FILENAME = "logs/%(config_name)s.log"
+LOG_FORMAT = "{levelname}:{message}"
+LOG_FILENAME = "logs/{config_name}.log"
 NUM_WORKERS = 4
 OUTPUT_FILENAME = "results/%(config_name)s.%(time)s.out"
 AWS_ACCESS_KEY = None
@@ -21,7 +21,7 @@ AWS_EC2_REMOTE_CONFIG_PATH = "/tmp/smr_config.py"
 
 # commands to run for each EC2 instance to initialize smr
 #from . import __version__
-#AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev", "sudo pip install smr==%s" % __version__]
+#AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev", "sudo pip install smr=={0}".format(__version__)]
 AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev git", "sudo pip install git+git://github.com/idyedov/smr.git"]
 PIP_REQUIREMENTS = None
 

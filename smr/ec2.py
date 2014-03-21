@@ -128,12 +128,12 @@ def initialize_instance_thread(config, instance, abort_event):
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
     chan.exec_command(command)
-    stdout = chan.makefile("rb")
+    #stdout = chan.makefile("rb")
     stderr = chan.makefile_stderr("rb")
-    for line in iter(stdout.readline, ""):
-        pass
+    #for line in iter(stdout.readline, ""):
+    #    print line.rstrip()
     for line in iter(stderr.readline, ""):
-        pass
+        print line.rstrip()
     exit_code = chan.recv_exit_status()
     if exit_code != 0:
         print "instance {0} invalid exit code of {1}: {2}".format(instance.id, command, exit_code)

@@ -18,13 +18,13 @@ def get_s3_uri(m, file_names, config):
     path = m.group(2)
     bucket = get_s3_bucket(bucket_name, config)
     for key in bucket.list(prefix=path):
-        file_names.append("s3://%s/%s" % (bucket_name, key.name))
+        file_names.append("s3://{0}/{1}".format(bucket_name, key.name))
 
 def get_local_uri(m, file_names, config):
     path = m.group(2)
     for root, sub_folders, files in os.walk(path):
         for file in files:
-            file_names.append("file:/%s" % (os.path.join(path, file)))
+            file_names.append("file:/{0}".format(os.path.join(path, file)))
 
 def download_s3_uri(m, config):
     bucket_name = m.group(1)

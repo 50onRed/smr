@@ -25,7 +25,7 @@ def ensure_dir_exists(path):
 
 def get_config():
     if len(sys.argv) < 2:
-        sys.stderr.write("usage: %s config.py\n" % (os.path.basename(sys.argv[0])))
+        sys.stderr.write("usage: {0} config.py\n".format(os.path.basename(sys.argv[0])))
         sys.exit(1)
 
     # this needs to be separate from argparse
@@ -64,7 +64,7 @@ def get_config_module(config_name):
         config = __import__(config_module)
     except ImportError:
         if not config_module.startswith("-"):
-            sys.stderr.write("Invalid job definition provided: %s\n" % (config_module))
+            sys.stderr.write("Invalid job definition provided: {0}\n".format(config_module))
             sys.exit(1)
         config = DummyConfig()
 
@@ -77,9 +77,9 @@ def get_config_module(config_name):
             setattr(config, k, v)
 
     now = datetime.datetime.now()
-    config.OUTPUT_FILENAME = config.OUTPUT_FILENAME % {"config_name": config_module, "time": now}
+    config.OUTPUT_FILENAME = config.OUTPUT_FILENAME.format(config_name=config_module, time=now)
     ensure_dir_exists(config.OUTPUT_FILENAME)
-    config.LOG_FILENAME = config.LOG_FILENAME % {"config_name": config_module}
+    config.LOG_FILENAME = config.LOG_FILENAME.format(config_name=config_module)
 
     return config
 
@@ -120,7 +120,7 @@ filename where results for this job will be stored. available format params are:
     parser.add_argument("--cpu_usage_interval", type=float, help="interval used for measuring CPU usage in seconds", default=config.CPU_REFRESH_INTERVAL)
     parser.add_argument("--screen_refresh_interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=config.SCREEN_REFRESH_INTERVAL)
 
-    parser.add_argument("--version", action="version", version="%s %s" % (os.path.basename(sys.argv[0]), __version__))
+    parser.add_argument("--version", action="version", version="{0} {1}".format(os.path.basename(sys.argv[0]), __version__))
 
     return parser
 
@@ -181,7 +181,7 @@ def write_file_to_descriptor(input_queue, descriptor):
     """
     try:
         file_name = input_queue.get(timeout=2)
-        descriptor.write("%s\n" % file_name)
+        descriptor.write("{0}\n".format(file_name))
         descriptor.flush()
         input_queue.task_done()
         return True

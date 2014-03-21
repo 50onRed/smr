@@ -47,4 +47,4 @@ def REDUCE_FUNC(result):
 
 def OUTPUT_RESULTS_FUNC():
     for key, count in sorted(global_result.iteritems(), key=lambda x : x[1], reverse=True):
-        print "%s,%d" % (key.encode("utf-8"), count)
+        print "{0},{1}".format(key.encode("utf-8"), count)
