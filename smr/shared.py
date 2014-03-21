@@ -47,7 +47,12 @@ def get_config():
     return args
 
 class DummyConfig(object):
-    pass
+    OUTPUT_FILENAME = ""
+    LOG_FILENAME = ""
+    MAP_FUNC = None
+    REDUCE_FUNC = None
+    OUTPUT_RESULTS_FUNC = None
+    AWS_EC2_INITIALIZE_SMR_COMMANDS = None
 
 def get_config_module(config_name):
     if config_name.endswith(".py"):

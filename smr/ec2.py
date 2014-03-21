@@ -129,7 +129,7 @@ def run_command(ssh, instance, command):
     #for line in iter(stdout.readline, ""):
     #    print line.rstrip()
     for line in iter(stderr.readline, ""):
-        print line.rstrip()
+        print "instance {0} stderr: {1}".format(instance.id, line.rstrip())
     exit_code = chan.recv_exit_status()
     if exit_code != 0:
         print "instance {0} invalid exit code of {1}: {2}".format(instance.id, command, exit_code)

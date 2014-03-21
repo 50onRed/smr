@@ -20,11 +20,11 @@ def get_s3_uri(m, file_names, config):
     for key in bucket.list(prefix=path):
         file_names.append("s3://{0}/{1}".format(bucket_name, key.name))
 
-def get_local_uri(m, file_names, config):
+def get_local_uri(m, file_names, _):
     path = m.group(2)
-    for root, sub_folders, files in os.walk(path):
-        for file in files:
-            file_names.append("file:/{0}".format(os.path.join(path, file)))
+    for _, _, files in os.walk(path):
+        for file_name in files:
+            file_names.append("file:/{0}".format(os.path.join(path, file_name)))
 
 def download_s3_uri(m, config):
     bucket_name = m.group(1)
@@ -37,7 +37,7 @@ def download_s3_uri(m, config):
 
     return download
 
-def download_local_uri(m, config):
+def download_local_uri(m, _):
     path = m.group(2)
     def download(local_file_name):
         shutil.copyfile(path, local_file_name)
@@ -57,7 +57,7 @@ def get_uris(config):
     if isinstance(config.input_data, basestring):
         config.input_data = [config.input_data]
     for uri in config.input_data:
-        for regex, uri_method, dl_method in URI_REGEXES:
+        for regex, uri_method, _ in URI_REGEXES:
             m = regex.match(uri)
             if m is not None:
                 uri_method(m, file_names, config)
@@ -66,7 +66,7 @@ def get_uris(config):
     return file_names
 
 def get_download_method(config, uri):
-    for regex, uri_method, dl_method in URI_REGEXES:
+    for regex, _, dl_method in URI_REGEXES:
         m = regex.match(uri)
         if m is not None:
             return dl_method(m, config)
