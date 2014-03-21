@@ -1,9 +1,9 @@
 LOG_LEVEL = "info"
 PARAMIKO_LOG_LEVEL = "warning"
-LOG_FORMAT = "{levelname}:{message}"
+LOG_FORMAT = "%(levelname)s:%(message)s"
 LOG_FILENAME = "logs/{config_name}.log"
 NUM_WORKERS = 4
-OUTPUT_FILENAME = "results/%(config_name)s.%(time)s.out"
+OUTPUT_FILENAME = "results/{config_name}.{time}.out"
 AWS_ACCESS_KEY = None
 AWS_SECRET_KEY = None
 INPUT_DATA = None
