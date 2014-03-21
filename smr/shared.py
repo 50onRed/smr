@@ -15,7 +15,8 @@ LOG_LEVELS = {
     "debug": logging.DEBUG
 }
 GLOBAL_SHARED_DATA = {
-    "files_processed": 0
+    "files_processed": 0,
+    "last_file_processed": ""
 }
 
 def ensure_dir_exists(path):
@@ -173,6 +174,9 @@ def progress_thread(processed_files_queue, abort_event):
 
 def get_param(param):
     return GLOBAL_SHARED_DATA[param]
+
+def set_param(param, value):
+    GLOBAL_SHARED_DATA[param] = value
 
 def write_file_to_descriptor(input_queue, descriptor):
     """

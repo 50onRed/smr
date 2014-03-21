@@ -9,7 +9,7 @@ import sys
 import threading
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, set_param
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -37,7 +37,9 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
     for line in iter(map_process.stderr.readline, ""):
         line = line.rstrip() # remove trailing linebreak
         if line.startswith("+"):
-            processed_files_queue.put(line[1:])
+            file_name = line[1:]
+            set_param("last_file_processed", file_name)
+            processed_files_queue.put(file_name)
         elif line.startswith("!"):
             input_queue.put(line[1:]) # re-queue file
         else:
@@ -67,6 +69,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
             i += 1
 
         window.addstr(i + 1, 0, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        window.addstr(i + 2, 0, "last file processed: {0}".format(get_param("last_file_processed")))
         if not abort_event.is_set():
             window.refresh()
 

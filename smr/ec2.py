@@ -14,7 +14,7 @@ import threading
 import time
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, set_param
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -42,14 +42,14 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
         line = line.rstrip() # remove trailing linebreak
         if line.startswith("+"):
             file_name = line[1:]
-            logging.debug("successfully processed %s", file_name)
+            set_param("last_file_processed", file_name)
             processed_files_queue.put(file_name)
         elif line.startswith("!"):
             file_name = line[1:]
             logging.warn("error processing %s, requeuing...", file_name)
             input_queue.put(file_name) # re-queue file
         else:
-            logging.error("invalid message received from mapper: %s", line)
+            sys.stderr.write("invalid message received from mapper: {0}".format(line))
 
         if abort_event.is_set():
             break
@@ -182,6 +182,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
             print_pid(p, window, i, "smr-reduce")
             i += 1
         window.addstr(i + 1, 0, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        window.addstr(i + 2, 0, "last file processed: {0}".format(get_param("last_file_processed")))
         if not abort_event.is_set():
             window.refresh()
 
