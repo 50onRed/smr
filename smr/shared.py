@@ -49,7 +49,6 @@ def get_config():
 
 class DummyConfig(object):
     OUTPUT_FILENAME = ""
-    LOG_FILENAME = ""
     MAP_FUNC = None
     REDUCE_FUNC = None
     OUTPUT_RESULTS_FUNC = None
@@ -86,7 +85,6 @@ def get_config_module(config_name):
     now = datetime.datetime.now()
     config.OUTPUT_FILENAME = config.OUTPUT_FILENAME.format(config_name=config_module, time=now)
     ensure_dir_exists(config.OUTPUT_FILENAME)
-    config.LOG_FILENAME = config.LOG_FILENAME.format(config_name=config_module)
 
     return config
 
