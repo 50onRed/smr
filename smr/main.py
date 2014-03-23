@@ -8,7 +8,7 @@ import sys
 import threading
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -38,9 +38,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
         elif line.startswith("!"):
             input_queue.put(line[1:]) # re-queue file
         else:
-            # TODO: display this on screen somehow
-            #logging.error("invalid message received from mapper: %s", line)
-            pass
+            add_message("invalid message received from mapper: {0}".format(line))
 
         if abort_event.is_set() or not write_file_to_descriptor(input_queue, map_process.stdin):
             break
@@ -67,6 +65,13 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
 
         window.addstr(i + 1, 0, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
         window.addstr(i + 2, 0, "last file processed: {0}".format(get_param("last_file_processed")))
+        messages = get_param("messages")
+        if len(messages) > 0:
+            window.addstr(i + 3, 0, "last messages:")
+            i += 4
+            for message in messages:
+                window.addstr(i, 0, "  {0}".format(message))
+                i += 1
         if not abort_event.is_set():
             window.refresh()
 
