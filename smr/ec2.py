@@ -227,6 +227,9 @@ def main():
         conn.terminate_instances(instance_ids)
         sys.exit(1)
 
+    print "initialized instance(s) in: {0}".format(str(datetime.datetime.now() - start_time))
+    start_time = datetime.datetime.now()
+
     workers = []
     for instance in instances:
         for _ in xrange(config.workers):
@@ -273,9 +276,9 @@ def main():
     reduce_worker.join()
     reduce_process.wait()
     if reduce_process.returncode != 0:
-        print "reduce process {0} exited with code {1}\n".format(reduce_process.pid, reduce_process.returncode)
+        print "reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode)
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
     reduce_stdout.close()
-    print "done. elapsed time: {0}\n".format(str(datetime.datetime.now() - start_time))
-    print "results are in {0}\n".format(config.output_filename)
+    print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
+    print "results are in {0}".format(config.output_filename)

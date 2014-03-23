@@ -136,14 +136,14 @@ def main():
     abort_event.set()
     for map_process in map_processes:
         if map_process.returncode != 0:
-            print "map process {0} exited with code {1}\n".format(map_process.pid, map_process.returncode)
+            print "map process {0} exited with code {1}".format(map_process.pid, map_process.returncode)
             print "partial results are in {0}".format(config.output_filename)
             sys.exit(1)
     # wait for reduce to finish before exiting
     reduce_worker.join()
     reduce_process.wait()
     if reduce_process.returncode != 0:
-        print "reduce process {0} exited with code {1}\n".format(reduce_process.pid, reduce_process.returncode)
+        print "reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode)
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
     reduce_stdout.close()
