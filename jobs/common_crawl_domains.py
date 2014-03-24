@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Usage: `smr common_crawl.py` or `smr-ec2 common-crawl.py`
+Usage: `smr common_crawl_domains.py` or `smr-ec2 common_crawl_domains.py`
 
 This sample job computes the number of times each domain appears in the dataset and outputs that in descending order.
 Uses commoncrawl dataset from http://commoncrawl.org/ that's hosted on S3: http://aws.amazon.com/datasets/41740
@@ -27,7 +27,7 @@ global_result = {}
 # AWS_EC2_KEYNAME = ''
 # AWS_EC2_LOCAL_KEYFILE = ''
 
-PIP_REQUIREMENTS = ["warc"]
+PIP_REQUIREMENTS = ["warc==0.2.1"]
 
 def MAP_FUNC(file_name):
     result = {}
@@ -46,5 +46,5 @@ def REDUCE_FUNC(result):
         global_result[key] = global_result.get(key, 0) + count
 
 def OUTPUT_RESULTS_FUNC():
-    for key, count in sorted(global_result.iteritems(), key=lambda x : x[1], reverse=True):
+    for key, count in sorted(global_result.iteritems(), key=lambda x: x[1], reverse=True):
         print "{0},{1}".format(key.encode("utf-8"), count)
