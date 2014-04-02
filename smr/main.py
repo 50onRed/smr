@@ -158,6 +158,10 @@ def main():
         print "reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode)
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
+
     reduce_stdout.close()
+    for message in get_param("messages"):
+        print message
+
     print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
     print "results are in {0}".format(config.output_filename)
