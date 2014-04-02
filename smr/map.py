@@ -18,8 +18,8 @@ def main():
             uri = uri.rstrip() # remove trailing linebreak
             temp_file, temp_filename = tempfile.mkstemp()
             dl = get_download_method(config, uri)
-            dl(temp_filename)
             try:
+                dl(temp_filename)
                 config.MAP_FUNC(temp_filename)
                 write_to_stderr("+", uri)
             except (KeyboardInterrupt, SystemExit):
