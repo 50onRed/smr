@@ -54,12 +54,3 @@ The most important parameters that you should implement in config are:
 
 ### smr-ec2
  * same functionality as smr, but boot up AWS_EC2_WORKERS EC2 instances and run smr-map on them
-
-## TODO
- * add option to output results to s3
- * don't allow smr-ec2 to run if there's local files in INPUT_DATA
- * add option to provide http and ftp urls in INPUT_DATA
- * better documentation
- * benchmark against other map-reduce frameworks
- * add ability for multi-level reducers
- * python3 support
