@@ -1,4 +1,5 @@
 import argparse
+import curses
 import datetime
 import logging
 import os
@@ -145,7 +146,10 @@ def print_pid(process, window, line_num, process_name):
         cpu_percent = process.cpu_percent(0.1)
     except:
         cpu_percent = 0.0
-    window.addstr(line_num, 0, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
+    try:
+        window.addstr(line_num, 0, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
+    except curses.error:
+       pass
 
 def progress_thread(processed_files_queue, abort_event):
     while not abort_event.is_set():
