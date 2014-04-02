@@ -71,7 +71,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
             window.addstr(i + 2, 0, "last file processed: {0}".format(get_param("last_file_processed")))
         except curses.error:
             pass
-        messages = get_param("messages")
+        messages = get_param("messages")[-10:]
         if len(messages) > 0:
             try:
                 window.addstr(i + 3, 0, "last messages:")
