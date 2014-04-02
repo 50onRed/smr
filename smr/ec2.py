@@ -237,9 +237,15 @@ def main():
         initialization_thread.start()
         initialization_threads.append(initialization_thread)
 
-    # TODO: catch KeywordInterrupt
-    for initialization_thread in initialization_threads:
-        initialization_thread.join()
+    try:
+        for initialization_thread in initialization_threads:
+            initialization_thread.join()
+    except KeywordInterrupt:
+        abort_event.set()
+        conn.terminate_instances(instance_ids)
+        curses.endwin()
+        print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
+        sys.exit(1)
 
     if abort_event.is_set():
         sys.stderr.write("could not initialize workers, terminating all instances: {0}\n".format(",".join(instance_ids)))
