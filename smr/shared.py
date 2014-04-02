@@ -149,7 +149,7 @@ def print_pid(process, window, line_num, process_name):
     try:
         window.addstr(line_num, 0, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
     except curses.error:
-       pass
+        pass
 
 def progress_thread(processed_files_queue, abort_event):
     while not abort_event.is_set():
