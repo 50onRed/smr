@@ -13,7 +13,7 @@ import threading
 import time
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -164,43 +164,25 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
     while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
         window.clear()
         now = datetime.datetime.now()
-        try:
-            window.addstr(0, 0, "smr-ec2 v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
-        except curses.error:
-            pass
+        add_str(window, 0, "smr-ec2 v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
         i = 1
         for instance in instances:
-            try:
-                window.addstr(i, 0, "  instance {0}".format(instance.id))
-            except curses.error:
-                pass
+            add_str(window, i, "  instance {0}".format(instance.id))
             i += 1
             for _ in xrange(config.workers):
-                try:
-                    window.addstr(i, 0, "    smr-map")
-                except curses.error:
-                    pass
+                add_str(window, i, "    smr-map")
                 i += 1
         for p in reduce_pids:
             print_pid(p, window, i, "smr-reduce")
             i += 1
-        try:
-            window.addstr(i + 1, 0, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
-            window.addstr(i + 2, 0, "last file processed: {0}".format(get_param("last_file_processed")))
-        except curses.error:
-            pass
+        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        add_str(window, i + 2, "last file processed: {0}".format(get_param("last_file_processed")))
         messages = get_param("messages")[-10:]
         if len(messages) > 0:
-            try:
-                window.addstr(i + 3, 0, "last messages:")
-            except curses.error:
-                pass
+            add_str(window, i + 3, "last messages:")
             i += 4
             for message in messages:
-                try:
-                    window.addstr(i, 0, "  {0}".format(message))
-                except curses.error:
-                    pass
+                add_str(window, i, "  {0}".format(message))
                 i += 1
         if not abort_event.is_set():
             window.refresh()
