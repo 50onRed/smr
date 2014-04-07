@@ -30,7 +30,10 @@ def main():
                 write_to_stderr("!", uri)
             finally:
                 os.close(temp_file)
-                os.unlink(temp_filename)
+                try:
+                    os.unlink(temp_filename)
+                except OSError:
+                    pass
     except (KeyboardInterrupt, SystemExit):
         sys.stderr.write("map worker {0} aborted\n".format(os.getpid()))
         sys.exit(1)
