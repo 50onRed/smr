@@ -1,6 +1,6 @@
 LOG_LEVEL = "info"
 PARAMIKO_LOG_LEVEL = "warning"
-NUM_WORKERS = 4
+NUM_WORKERS = 8
 OUTPUT_FILENAME = "results/{config_name}.{time}.out"
 AWS_ACCESS_KEY = None
 AWS_SECRET_KEY = None
