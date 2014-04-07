@@ -167,7 +167,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
         add_str(window, 0, "smr-ec2 v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
         i = 1
         for instance in instances:
-            add_str(window, i, "  instance {0}".format(instance.id))
+            add_str(window, i, "  instance {} {}".format(instance.id, instance.ip_address))
             i += 1
             for _ in xrange(config.workers):
                 add_str(window, i, "    smr-map")
