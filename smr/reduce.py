@@ -10,8 +10,6 @@ def main():
         for result in iter(sys.stdin.readline, ""):
             result = result.rstrip() # remove trailing linebreak
             config.REDUCE_FUNC(result)
-    except (KeyboardInterrupt, SystemExit):
+    finally:
         # we want to output results even if user aborted
-        config.OUTPUT_RESULTS_FUNC()
-    else:
         config.OUTPUT_RESULTS_FUNC()
