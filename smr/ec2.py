@@ -162,6 +162,8 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
     reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
     sleep_time = config.screen_refresh_interval - (config.cpu_usage_interval * len(reduce_pids))
     while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
+        if abort_event.is_set():
+            break
         window.clear()
         now = datetime.datetime.now()
         add_str(window, 0, "smr-ec2 v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
@@ -269,15 +271,18 @@ def main():
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
 
-    curses.endwin()
-    conn.terminate_instances(instance_ids)
+    output_queue.join() # wait for reducer to process everything
+
     abort_event.set()
+    curses_worker.join()
+    curses.endwin()
 
     for chan, _ in workers:
         exit_code = chan.recv_exit_status()
         if exit_code != 0:
             print "map process exited with code {0}".format(exit_code)
-            sys.exit(1)
+
+    conn.terminate_instances(instance_ids)
 
     # wait for reduce to finish before exiting
     reduce_worker.join()
@@ -285,7 +290,6 @@ def main():
     if reduce_process.returncode != 0:
         print "reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode)
         print "partial results are in {0}".format(config.output_filename)
-        sys.exit(1)
 
     reduce_stdout.close()
     for message in get_param("messages"):
