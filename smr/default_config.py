@@ -19,8 +19,15 @@ AWS_EC2_REMOTE_CONFIG_PATH = "/tmp/smr_config.py"
 
 # commands to run for each EC2 instance to initialize smr
 #from . import __version__
-#AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev", "sudo pip install smr=={0}".format(__version__)]
-AWS_EC2_INITIALIZE_SMR_COMMANDS = ["while pgrep cloud-init > /dev/null; do sleep 1; done", "sudo apt-get update", "sudo apt-get -q -y install python-pip python-dev git", "sudo pip install git+git://github.com/idyedov/smr.git"]
+AWS_EC2_INITIALIZE_SMR_COMMANDS = [
+    "while pgrep cloud-init > /dev/null; do sleep 1; done",
+    "DEBIAN_FRONTEND=noninteractive",
+    "sudo apt-get update",
+    #"sudo apt-get -q -y install python-pip python-dev",
+    "sudo apt-get -q -y install python-pip python-dev git",
+    #"sudo pip install smr=={0}".format(__version__)
+    "sudo pip install git+git://github.com/idyedov/smr.git"
+]
 PIP_REQUIREMENTS = None
 
 # MAP_FUNC:
