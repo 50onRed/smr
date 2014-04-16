@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 import sys
 
-from .shared import get_config
+from .shared import get_config, configure_job
 
 def run(config):
+    configure_job(config)
     try:
         for result in iter(sys.stdin.readline, ""):
             result = result.rstrip() # remove trailing linebreak

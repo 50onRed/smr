@@ -13,7 +13,7 @@ import threading
 import time
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import get_config, configure_job, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -190,6 +190,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
             window.refresh()
 
 def run(config):
+    configure_job(config)
     if not config.aws_ec2_keyname:
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)

@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 
-from .shared import get_config
+from .shared import get_config, configure_job
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
@@ -11,6 +11,7 @@ def write_to_stderr(prefix, file_name):
     sys.stderr.flush()
 
 def run(config):
+    configure_job(config)
     try:
         for uri in iter(sys.stdin.readline, ""):
             uri = uri.rstrip() # remove trailing linebreak
