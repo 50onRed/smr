@@ -37,10 +37,9 @@ def get_config(argparse_args=None):
                 "AWS_EC2_INITIALIZE_SMR_COMMANDS", "INPUT_DATA", "PIP_REQUIREMENTS"):
         setattr(args, arg, getattr(config, arg))
 
-    now = datetime.datetime.now()
-    args.output_filename = args.output_filename.format(config_name=args.config, time=now)
+    if not args.output_filename:
+        args.output_filename = "results/{}.{}.out".format(args.config, datetime.datetime.now())
     ensure_dir_exists(args.output_filename)
-
     configure_logging(args)
 
     return args
@@ -87,11 +86,7 @@ def get_arg_parser():
 
     parser.add_argument("--paramiko-log-level", help="level of logging to be used for paramiko ssh connections (for smr-ec2 only)", choices=LOG_LEVELS.keys(), default="warning")
     parser.add_argument("-w", "--workers", type=int, help="number of worker processes to use", default=8)
-    parser.add_argument("--output-filename", help="""
-filename where results for this job will be stored. available format params are:
- - config_name: basename of config file that's passed to smr
- - time: current date and time
-""", default="results/{config_name}.{time}.out")
+    parser.add_argument("--output-filename", help="filename where results for this job will be stored")
     parser.add_argument("--output-job-progress", help="Output job progress to screen", dest='output_job_progress', action='store_true', default=True)
     parser.add_argument("--no-output-job-progress", help="Do not output job progress to screen", dest='output_job_progress', action='store_false')
     parser.add_argument("--aws-access-key", help="AWS access key used for S3/EC2 access")
