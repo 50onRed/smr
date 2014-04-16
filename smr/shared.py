@@ -45,12 +45,6 @@ def get_config(argparse_args=None):
 
     return args
 
-class DummyConfig(object):
-    MAP_FUNC = None
-    REDUCE_FUNC = None
-    OUTPUT_RESULTS_FUNC = None
-    AWS_EC2_INITIALIZE_SMR_COMMANDS = None
-
 def get_config_module(config_name):
     if config_name.endswith(".py"):
         config_name = config_name[:-3]
@@ -66,10 +60,8 @@ def get_config_module(config_name):
     try:
         config = __import__(config_module)
     except ImportError:
-        if not config_module.startswith("-"):
-            sys.stderr.write("Invalid job definition provided: {0}\n".format(config_module))
-            sys.exit(1)
-        config = DummyConfig()
+        sys.stderr.write("Invalid job definition provided: {0}\n".format(config_module))
+        sys.exit(1)
 
     # settings that are not overriden need to be set to defaults
     from . import default_config
