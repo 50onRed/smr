@@ -94,7 +94,7 @@ def run(config):
     map_processes = []
     read_workers = []
     for _ in xrange(config.workers):
-        map_process = subprocess.Popen(["smr-map"] + sys.argv[1:], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        map_process = subprocess.Popen(["smr-map"] + config.args, bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         map_processes.append(map_process)
 
         row = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, map_process, abort_event))
@@ -107,7 +107,7 @@ def run(config):
         read_workers.append(rew)
 
     reduce_stdout = open(config.output_filename, "w")
-    reduce_process = subprocess.Popen(["smr-reduce"] + sys.argv[1:], bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout)
+    reduce_process = subprocess.Popen(["smr-reduce"] + config.args, bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout)
 
     reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
     #reduce_worker.daemon = True

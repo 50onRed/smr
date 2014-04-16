@@ -146,7 +146,7 @@ def start_worker(config, instance, abort_event, output_queue, processed_files_qu
         sys.exit(1)
 
     chan = ssh.get_transport().open_session()
-    chan.exec_command("smr-map {0}".format(" ".join(sys.argv[1:-1] + [config.aws_ec2_remote_config_path])))
+    chan.exec_command("smr-map {0}".format(" ".join(config.args[:-1] + [config.aws_ec2_remote_config_path])))
 
     stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
     stdout_thread.daemon = True
@@ -242,7 +242,7 @@ def run(config):
             workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue))
 
     reduce_stdout = open(config.output_filename, "w")
-    reduce_process = subprocess.Popen(["smr-reduce"] + sys.argv[1:], stdin=subprocess.PIPE, stdout=reduce_stdout)
+    reduce_process = subprocess.Popen(["smr-reduce"] + config.args, stdin=subprocess.PIPE, stdout=reduce_stdout)
 
     reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
     #reduce_worker.daemon = True

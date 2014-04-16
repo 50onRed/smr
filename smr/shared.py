@@ -36,6 +36,7 @@ def get_config(argparse_args=None):
     for arg in ("MAP_FUNC", "REDUCE_FUNC", "OUTPUT_RESULTS_FUNC", 
                 "AWS_EC2_INITIALIZE_SMR_COMMANDS", "INPUT_DATA", "PIP_REQUIREMENTS"):
         setattr(args, arg, getattr(config, arg))
+    args.args = argparse_args if argparse_args else sys.argv[1:]
 
     if not args.output_filename:
         args.output_filename = "results/{}.{}.out".format(args.config, datetime.datetime.now())
