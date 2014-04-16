@@ -1,23 +1,3 @@
-LOG_LEVEL = "info"
-PARAMIKO_LOG_LEVEL = "warning"
-NUM_WORKERS = 8
-OUTPUT_FILENAME = "results/{config_name}.{time}.out"
-AWS_ACCESS_KEY = None
-AWS_SECRET_KEY = None
-INPUT_DATA = None
-CPU_REFRESH_INTERVAL = 0.1
-SCREEN_REFRESH_INTERVAL = 1.0
-OUTPUT_JOB_PROGRESS = True
-AWS_EC2_REGION = "us-east-1"
-AWS_EC2_AMI = "ami-89181be0"
-AWS_EC2_INSTANCE_TYPE = "m3.large"
-AWS_EC2_KEYNAME = None
-AWS_EC2_LOCAL_KEYFILE = "~/.ssh/id_rsa"
-AWS_EC2_SECURITY_GROUPS = ["default"]
-AWS_EC2_SSH_USERNAME = "ubuntu"
-AWS_EC2_WORKERS = 1
-AWS_EC2_REMOTE_CONFIG_PATH = "/tmp/smr_config.py"
-
 # commands to run for each EC2 instance to initialize smr
 #from . import __version__
 AWS_EC2_INITIALIZE_SMR_COMMANDS = [

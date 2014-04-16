@@ -13,7 +13,7 @@ import threading
 import time
 
 from . import __version__
-from .shared import get_config_from_cmd_args, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -107,8 +107,8 @@ def initialize_instance_thread(config, instance, abort_event):
     for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
         run_command(ssh, instance, command)
 
-    if config.pip_requirements is not None and len(config.pip_requirements) > 0:
-        for package in config.pip_requirements:
+    if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
+        for package in config.PIP_REQUIREMENTS:
             run_command(ssh, instance, "sudo pip install {0}".format(package))
 
     # copy config to this instance
@@ -299,5 +299,5 @@ def run(config):
     print "results are in {0}".format(config.output_filename)
 
 def main():
-    config = get_config_from_cmd_args()
+    config = get_config()
     run(config)

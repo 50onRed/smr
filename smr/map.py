@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 
-from .shared import get_config_from_cmd_args
+from .shared import get_config
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
@@ -37,5 +37,5 @@ def run(config):
         sys.exit(1)
 
 def main():
-    config = get_config_from_cmd_args()
+    config = get_config()
     run(config)

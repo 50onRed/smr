@@ -8,7 +8,7 @@ import sys
 import threading
 
 from . import __version__
-from .shared import get_config_from_cmd_args, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -160,5 +160,5 @@ def run(config):
     print "results are in {0}".format(config.output_filename)
 
 def main():
-    config = get_config_from_cmd_args()
+    config = get_config()
     run(config)

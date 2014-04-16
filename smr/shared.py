@@ -26,33 +26,26 @@ def ensure_dir_exists(path):
     if dir_name != '' and not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
-def get_config_from_cmd_args():
-    if len(sys.argv) < 2:
-        sys.stderr.write("usage: {0} config.py\n".format(os.path.basename(sys.argv[0])))
-        sys.exit(1)
-
-    # this needs to be separate from argparse
-    config_name = sys.argv[-1]
-    return get_config(config_name)
-
-def get_config(config_name, argparse_args=None):
-    config = get_config_module(config_name)
-
-    parser = get_arg_parser(config)
+def get_config(argparse_args=None):
+    parser = get_arg_parser()
     args = parser.parse_args(argparse_args)
 
+    config = get_config_module(args.config)
+
     # add extra options to args that cannot be specified in cli
-    args.MAP_FUNC = config.MAP_FUNC
-    args.REDUCE_FUNC = config.REDUCE_FUNC
-    args.OUTPUT_RESULTS_FUNC = config.OUTPUT_RESULTS_FUNC
-    args.AWS_EC2_INITIALIZE_SMR_COMMANDS = config.AWS_EC2_INITIALIZE_SMR_COMMANDS
+    for arg in ("MAP_FUNC", "REDUCE_FUNC", "OUTPUT_RESULTS_FUNC", 
+                "AWS_EC2_INITIALIZE_SMR_COMMANDS", "INPUT_DATA", "PIP_REQUIREMENTS"):
+        setattr(args, arg, getattr(config, arg))
+
+    now = datetime.datetime.now()
+    args.output_filename = args.output_filename.format(config_name=args.config, time=now)
+    ensure_dir_exists(args.output_filename)
 
     configure_logging(args)
 
     return args
 
 class DummyConfig(object):
-    OUTPUT_FILENAME = ""
     MAP_FUNC = None
     REDUCE_FUNC = None
     OUTPUT_RESULTS_FUNC = None
@@ -86,42 +79,36 @@ def get_config_module(config_name):
         if not hasattr(config, k):
             setattr(config, k, v)
 
-    now = datetime.datetime.now()
-    config.OUTPUT_FILENAME = config.OUTPUT_FILENAME.format(config_name=config_module, time=now)
-    ensure_dir_exists(config.OUTPUT_FILENAME)
-
     return config
 
-def get_arg_parser(config):
+def get_arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="config.py")
 
-    parser.add_argument("--paramiko-log-level", help="level of logging to be used for paramiko ssh connections (for smr-ec2 only)", choices=LOG_LEVELS.keys(), default=config.PARAMIKO_LOG_LEVEL)
-    parser.add_argument("-w", "--workers", type=int, help="number of worker processes to use", default=config.NUM_WORKERS)
+    parser.add_argument("--paramiko-log-level", help="level of logging to be used for paramiko ssh connections (for smr-ec2 only)", choices=LOG_LEVELS.keys(), default="warning")
+    parser.add_argument("-w", "--workers", type=int, help="number of worker processes to use", default=8)
     parser.add_argument("--output-filename", help="""
 filename where results for this job will be stored. available format params are:
  - config_name: basename of config file that's passed to smr
  - time: current date and time
-""", default=config.OUTPUT_FILENAME)
-    parser.add_argument("--input-data", help="List of files/directort URIs that contain input data to be processed. for example: ['s3://bucket/path', 'file://absolute/path']", nargs="*", default=config.INPUT_DATA)
-    parser.add_argument("--output-job-progress", help="Output job progress to screen", dest='output_job_progress', action='store_true', default=config.OUTPUT_JOB_PROGRESS)
+""", default="results/{config_name}.{time}.out")
+    parser.add_argument("--output-job-progress", help="Output job progress to screen", dest='output_job_progress', action='store_true', default=True)
     parser.add_argument("--no-output-job-progress", help="Do not output job progress to screen", dest='output_job_progress', action='store_false')
-    parser.add_argument("--aws-access-key", help="AWS access key used for S3/EC2 access", default=config.AWS_ACCESS_KEY)
-    parser.add_argument("--aws-secret-key", help="AWS secret key used for S3/EC2 access", default=config.AWS_SECRET_KEY)
-    parser.add_argument("--aws-ec2-region", help="region to use when running smr-ec2 workers", default=config.AWS_EC2_REGION)
-    parser.add_argument("--aws-ec2-ami", help="AMI to use when running smr-ec2 workers", default=config.AWS_EC2_AMI)
-    parser.add_argument("--aws-ec2-instance-type", help="instance type to use for EC2 instances", default=config.AWS_EC2_INSTANCE_TYPE)
-    parser.add_argument("--aws-ec2-keyname", help="keyname to use for starting EC2 instances", default=config.AWS_EC2_KEYNAME)
-    parser.add_argument("--aws-ec2-local-keyfile", help="local private key file used for ssh access to EC2 instances", default=config.AWS_EC2_LOCAL_KEYFILE)
-    parser.add_argument("--aws-ec2-security-group", help="security group to use for accessing EC2 workers (needs port 22 open)", nargs="*", default=config.AWS_EC2_SECURITY_GROUPS)
-    parser.add_argument("--aws-ec2-ssh-username", help="username to use when logging into EC2 workers over SSH", default=config.AWS_EC2_SSH_USERNAME)
-    parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=config.AWS_EC2_WORKERS)
-    parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default=config.AWS_EC2_REMOTE_CONFIG_PATH)
-    parser.add_argument("--pip-requirements", help="List of extra python packages needed for this job. for example: ['warc']", nargs="*", default=config.PIP_REQUIREMENTS)
-    parser.add_argument("--cpu_usage_interval", type=float, help="interval used for measuring CPU usage in seconds", default=config.CPU_REFRESH_INTERVAL)
-    parser.add_argument("--screen_refresh_interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=config.SCREEN_REFRESH_INTERVAL)
+    parser.add_argument("--aws-access-key", help="AWS access key used for S3/EC2 access")
+    parser.add_argument("--aws-secret-key", help="AWS secret key used for S3/EC2 access")
+    parser.add_argument("--aws-ec2-region", help="region to use when running smr-ec2 workers", default="us-east-1")
+    parser.add_argument("--aws-ec2-ami", help="AMI to use when running smr-ec2 workers", default="ami-89181be0")
+    parser.add_argument("--aws-ec2-instance-type", help="instance type to use for EC2 instances", default="m3.large")
+    parser.add_argument("--aws-ec2-keyname", help="keyname to use for starting EC2 instances")
+    parser.add_argument("--aws-ec2-local-keyfile", help="local private key file used for ssh access to EC2 instances", default="~/.ssh/id_rsa")
+    parser.add_argument("--aws-ec2-security-group", help="security group to use for accessing EC2 workers (needs port 22 open)", nargs="*", default=["default"])
+    parser.add_argument("--aws-ec2-ssh-username", help="username to use when logging into EC2 workers over SSH", default="ubuntu")
+    parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=1)
+    parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default="/tmp/smr_config.py")
+    parser.add_argument("--cpu_usage_interval", type=float, help="interval used for measuring CPU usage in seconds", default=0.1)
+    parser.add_argument("--screen_refresh_interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=1.0)
 
-    parser.add_argument("--version", action="version", version="{0} {1}".format(os.path.basename(sys.argv[0]), __version__))
+    parser.add_argument("--version", action="version", version="SMR {}".format(__version__))
 
     return parser
 

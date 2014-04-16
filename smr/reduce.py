@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 
-from .shared import get_config_from_cmd_args
+from .shared import get_config
 
 def run(config):
     try:
@@ -15,5 +15,5 @@ def run(config):
         config.OUTPUT_RESULTS_FUNC()
 
 def main():
-    config = get_config_from_cmd_args()
+    config = get_config()
     run(config)
