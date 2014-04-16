@@ -3,16 +3,14 @@ import os
 import sys
 import tempfile
 
-from .shared import get_config
+from .shared import get_config_from_cmd_args
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
     sys.stderr.write("{0}{1}\n".format(prefix, file_name))
     sys.stderr.flush()
 
-def main():
-    config = get_config()
-
+def run(config):
     try:
         for uri in iter(sys.stdin.readline, ""):
             uri = uri.rstrip() # remove trailing linebreak
@@ -37,3 +35,7 @@ def main():
     except (KeyboardInterrupt, SystemExit):
         sys.stderr.write("map worker {0} aborted\n".format(os.getpid()))
         sys.exit(1)
+
+def main():
+    config = get_config_from_cmd_args()
+    run(config)

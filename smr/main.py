@@ -8,7 +8,7 @@ import sys
 import threading
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import get_config_from_cmd_args, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -77,10 +77,8 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
         if not abort_event.is_set():
             window.refresh()
 
-def main():
-    config = get_config()
+def run(config):
     print "getting list of the files to process..."
-
     file_names = get_uris(config)
     files_total = len(file_names)
 
@@ -144,7 +142,6 @@ def main():
             print "map process {0} exited with code {1}".format(map_process.pid, map_process.returncode)
             print "partial results are in {0}".format(config.output_filename)
 
-
     # wait for reduce to finish before exiting
     reduce_worker.join()
     reduce_process.wait()
@@ -158,3 +155,7 @@ def main():
 
     print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
     print "results are in {0}".format(config.output_filename)
+
+def main():
+    config = get_config_from_cmd_args()
+    run(config)

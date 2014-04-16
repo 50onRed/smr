@@ -26,17 +26,20 @@ def ensure_dir_exists(path):
     if dir_name != '' and not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
-def get_config():
+def get_config_from_cmd_args():
     if len(sys.argv) < 2:
         sys.stderr.write("usage: {0} config.py\n".format(os.path.basename(sys.argv[0])))
         sys.exit(1)
 
     # this needs to be separate from argparse
     config_name = sys.argv[-1]
+    return get_config(config_name)
+
+def get_config(config_name, argparse_args=None):
     config = get_config_module(config_name)
 
     parser = get_arg_parser(config)
-    args = parser.parse_args()
+    args = parser.parse_args(argparse_args)
 
     # add extra options to args that cannot be specified in cli
     args.MAP_FUNC = config.MAP_FUNC

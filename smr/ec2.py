@@ -13,7 +13,7 @@ import threading
 import time
 
 from . import __version__
-from .shared import get_config, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import get_config_from_cmd_args, reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -189,9 +189,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
         if not abort_event.is_set():
             window.refresh()
 
-def main():
-    config = get_config()
-
+def run(config):
     if not config.aws_ec2_keyname:
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)
@@ -224,7 +222,7 @@ def main():
     try:
         for initialization_thread in initialization_threads:
             initialization_thread.join()
-    except KeywordInterrupt:
+    except KeyboardInterrupt:
         abort_event.set()
         conn.terminate_instances(instance_ids)
         curses.endwin()
@@ -297,3 +295,7 @@ def main():
 
     print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
     print "results are in {0}".format(config.output_filename)
+
+def main():
+    config = get_config_from_cmd_args()
+    run(config)
