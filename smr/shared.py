@@ -104,6 +104,8 @@ filename where results for this job will be stored. available format params are:
  - time: current date and time
 """, default=config.OUTPUT_FILENAME)
     parser.add_argument("--input-data", help="List of files/directort URIs that contain input data to be processed. for example: ['s3://bucket/path', 'file://absolute/path']", nargs="*", default=config.INPUT_DATA)
+    parser.add_argument("--output-job-progress", help="Output job progress to screen", dest='output_job_progress', action='store_true', default=config.OUTPUT_JOB_PROGRESS)
+    parser.add_argument("--no-output-job-progress", help="Do not output job progress to screen", dest='output_job_progress', action='store_false')
     parser.add_argument("--aws-access-key", help="AWS access key used for S3/EC2 access", default=config.AWS_ACCESS_KEY)
     parser.add_argument("--aws-secret-key", help="AWS secret key used for S3/EC2 access", default=config.AWS_SECRET_KEY)
     parser.add_argument("--aws-ec2-region", help="region to use when running smr-ec2 workers", default=config.AWS_EC2_REGION)

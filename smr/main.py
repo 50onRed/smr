@@ -117,25 +117,28 @@ def run(config):
     #progress_worker.daemon = True
     progress_worker.start()
 
-    window = curses.initscr()
-    curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, map_processes, [reduce_process], window, start_time, files_total))
-    #curses_worker.daemon = True
-    curses_worker.start()
+    if config.output_job_progress:
+        window = curses.initscr()
+        curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, map_processes, [reduce_process], window, start_time, files_total))
+        #curses_worker.daemon = True
+        curses_worker.start()
 
     try:
         for w in read_workers:
             w.join()
     except KeyboardInterrupt:
         abort_event.set()
-        curses.endwin()
+        if config.output_job_progress:
+            curses.endwin()
         print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
 
     output_queue.join() # wait for reducer to process everything
     abort_event.set()
-    curses_worker.join()
-    curses.endwin()
+    if config.output_job_progress:
+        curses_worker.join()
+        curses.endwin()
 
     for map_process in map_processes:
         if map_process.returncode != 0:

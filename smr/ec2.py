@@ -225,7 +225,6 @@ def run(config):
     except KeyboardInterrupt:
         abort_event.set()
         conn.terminate_instances(instance_ids)
-        curses.endwin()
         print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
         sys.exit(1)
 
@@ -253,10 +252,11 @@ def run(config):
     #progress_worker.daemon = True
     progress_worker.start()
 
-    window = curses.initscr()
-    curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, files_total))
-    #curses_worker.daemon = True
-    curses_worker.start()
+    if config.output_job_progress:
+        window = curses.initscr()
+        curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, files_total))
+        #curses_worker.daemon = True
+        curses_worker.start()
 
     try:
         for _, w in workers:
@@ -264,7 +264,8 @@ def run(config):
     except KeyboardInterrupt:
         abort_event.set()
         conn.terminate_instances(instance_ids)
-        curses.endwin()
+        if config.output_job_progress:
+            curses.endwin()
         print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
         print "partial results are in {0}".format(config.output_filename)
         sys.exit(1)
@@ -272,8 +273,9 @@ def run(config):
     output_queue.join() # wait for reducer to process everything
 
     abort_event.set()
-    curses_worker.join()
-    curses.endwin()
+    if config.output_job_progress:
+        curses_worker.join()
+        curses.endwin()
 
     for chan, _ in workers:
         exit_code = chan.recv_exit_status()
