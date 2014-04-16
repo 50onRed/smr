@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 
-from .shared import get_config, configure_job
+from .config import get_config, configure_job
 
 def run(config):
     configure_job(config)

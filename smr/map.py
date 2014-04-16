@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 
-from .shared import get_config, configure_job
+from .config import get_config, configure_job
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
