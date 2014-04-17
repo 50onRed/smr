@@ -115,7 +115,7 @@ def configure_job(args):
         args.args.append(args.aws_access_key)
     if args.aws_secret_key:
         args.args.append("--aws-secret-key")
-        args.args.appned(args.aws_secret_key)
+        args.args.append(args.aws_secret_key)
     args.args.append(args.config)
 
     ensure_dir_exists(args.output_filename)
