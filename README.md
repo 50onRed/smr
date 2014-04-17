@@ -15,7 +15,17 @@ or just
  * paramiko is required for smr-ec2 to communicate with EC2 instances through SSH
 
 ## Usage
+
+### CLI tools
 ```smr config.py``` or ```smr-ec2 config.py```
+
+### integrate into your code
+```python
+from smr import run, run_ec2, get_default_config
+config = get_default_config()
+config.config = "config.py"
+run(config) # or run_ec2(config)
+```
 
 jobs directory has a sample job that uses common crawl public dataset on S3.
 
