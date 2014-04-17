@@ -15,19 +15,20 @@ LOG_LEVELS = {
 }
 
 class DefaultConfig(object):
-    paramiko_log_level = "warning"
-    workers = 8
-    output_job_progress = True
-    aws_ec2_region = "us-east-1"
-    aws_ec2_ami = "ami-89181be0"
-    aws_ec2_instance_type = "m3.large"
-    aws_ec2_local_keyfile = "~/.ssh/id_rsa"
-    aws_ec2_security_group = ["default"]
-    aws_ec2_ssh_username = "ubuntu"
-    aws_ec2_workers = 1
-    aws_ec2_remote_config_path = "/tmp/smr_config.py"
-    cpu_usage_interval = 0.1
-    screen_refresh_interval = 1.0
+    def __init__(self):
+        self.paramiko_log_level = "warning"
+        self.workers = 8
+        self.output_job_progress = True
+        self.aws_ec2_region = "us-east-1"
+        self.aws_ec2_ami = "ami-89181be0"
+        self.aws_ec2_instance_type = "m3.large"
+        self.aws_ec2_local_keyfile = "~/.ssh/id_rsa"
+        self.aws_ec2_security_group = ["default"]
+        self.aws_ec2_ssh_username = "ubuntu"
+        self.aws_ec2_workers = 1
+        self.aws_ec2_remote_config_path = "/tmp/smr_config.py"
+        self.cpu_usage_interval = 0.1
+        self.screen_refresh_interval = 1.0
 
 def get_default_config():
     return DefaultConfig()
@@ -66,7 +67,7 @@ def get_config_module(config_name):
     return config
 
 def get_config(args=None):
-    default_config = get_default_config()
+    default_config = DefaultConfig()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="config.py")
@@ -99,6 +100,12 @@ def get_config(args=None):
     return result
 
 def configure_job(args):
+    if not hasattr(args, "args"):
+        # generate args to be passed to smr-map and smr-reduce
+        args.args = [
+            "--aws-access-key", args.aws_access_key,
+            "--aws-secret-key", args.aws_secret_key
+        ]
     config = get_config_module(args.config)
 
     # add extra options to args that cannot be specified in cli
@@ -108,6 +115,7 @@ def configure_job(args):
 
     if not args.output_filename:
         args.output_filename = "results/{}.{}.out".format(args.config, datetime.datetime.now())
+
     ensure_dir_exists(args.output_filename)
     paramiko_level_str = args.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
