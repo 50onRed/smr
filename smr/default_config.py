@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
 # commands to run for each EC2 instance to initialize smr
 #from .version import __version__
 AWS_EC2_INITIALIZE_SMR_COMMANDS = [
@@ -23,4 +26,4 @@ REDUCE_FUNC = None
 
 def OUTPUT_RESULTS_FUNC():
     """ OUTPUT_RESULTS_FUNC: called upon job completion. takes no arguments """
-    print "done."
+    print("done.")

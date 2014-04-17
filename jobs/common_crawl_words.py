@@ -5,18 +5,21 @@ Usage: `smr common_crawl_words.py` or `smr-ec2 common_crawl_words.py`
 This sample job computes the number of times each domain appears in the dataset and outputs that in descending order.
 Uses commoncrawl dataset from http://commoncrawl.org/ that's hosted on S3: http://aws.amazon.com/datasets/41740
 """
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
 import gzip
 import re
 import sys
 try:
     from bs4 import BeautifulSoup
 except ImportError:
-    print "you need to install beautifulsoup4 python extension to run this job"
+    print("you need to install beautifulsoup4 python extension to run this job")
     sys.exit(1)
 try:
     import warc
 except ImportError:
-    print "you need to install warc python extension to run this job"
+    print("you need to install warc python extension to run this job")
     sys.exit(1)
 
 # use only a small chunk of it for testing purposes
@@ -45,7 +48,7 @@ def MAP_FUNC(file_name):
             soup = BeautifulSoup(splt[1])
             payload = REGEX_NON_ALPHANUMERIC.sub("", soup.get_text(u" ", strip=True))
             for word in REGEX_SPACE.split(payload):
-                print word # pass word to reducer
+                print(word) # pass word to reducer
 
 def REDUCE_FUNC(word):
     word = word.rstrip() # remove trailing linebreak
@@ -53,4 +56,4 @@ def REDUCE_FUNC(word):
 
 def OUTPUT_RESULTS_FUNC():
     for word, count in sorted(global_result.iteritems(), key=lambda x: x[1], reverse=True):
-        print "{0},{1}".format(word.encode("utf-8"), count)
+        print("{0},{1}".format(word.encode("utf-8"), count))

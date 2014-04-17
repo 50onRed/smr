@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
 import curses
 import datetime
 import psutil
@@ -66,7 +69,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
             print_pid(p, window, i, "smr-reduce")
             i += 1
 
-        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / files_total))
         add_str(window, i + 2, "last file processed: {0}".format(get_param("last_file_processed")))
         messages = get_param("messages")[-10:]
         if len(messages) > 0:
@@ -80,7 +83,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
 
 def run(config):
     configure_job(config)
-    print "getting list of the files to process..."
+    print("getting list of the files to process...")
     file_names = get_uris(config)
     files_total = len(file_names)
 
@@ -132,8 +135,8 @@ def run(config):
         abort_event.set()
         if config.output_job_progress:
             curses.endwin()
-        print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
-        print "partial results are in {0}".format(config.output_filename)
+        print("user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
+        print("partial results are in {0}".format(config.output_filename))
         sys.exit(1)
 
     output_queue.join() # wait for reducer to process everything
@@ -144,22 +147,22 @@ def run(config):
 
     for map_process in map_processes:
         if map_process.returncode != 0:
-            print "map process {0} exited with code {1}".format(map_process.pid, map_process.returncode)
-            print "partial results are in {0}".format(config.output_filename)
+            print("map process {0} exited with code {1}".format(map_process.pid, map_process.returncode))
+            print("partial results are in {0}".format(config.output_filename))
 
     # wait for reduce to finish before exiting
     reduce_worker.join()
     reduce_process.wait()
     if reduce_process.returncode != 0:
-        print "reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode)
-        print "partial results are in {0}".format(config.output_filename)
+        print("reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode))
+        print("partial results are in {0}".format(config.output_filename))
 
     reduce_stdout.close()
     for message in get_param("messages"):
-        print message
+        print(message)
 
-    print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
-    print "results are in {0}".format(config.output_filename)
+    print("done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
+    print("results are in {0}".format(config.output_filename))
 
 def main():
     config = get_config()

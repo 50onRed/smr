@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
 import boto
 from boto.s3.key import Key
 import os
@@ -62,7 +65,7 @@ def get_uris(config):
             if m is not None:
                 uri_method(m, file_names, config)
                 break
-    print "going to process {0} files...".format(len(file_names))
+    print("going to process {0} files...".format(len(file_names)))
     return file_names
 
 def get_download_method(config, uri):

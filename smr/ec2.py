@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
 import boto
 import boto.ec2
 import curses
@@ -70,22 +73,22 @@ def wait_for_instance(instance):
     """ wait for instance status to be 'running' in which case return True, False otherwise """
 
     status = None
-    print "getting status for instance {0} ...".format(instance.id)
+    print("getting status for instance {0} ...".format(instance.id))
     while status is None:
         status = instance.update()
         if status is None:
             time.sleep(2)
-    print "waiting for instance {0} ...".format(instance.id)
+    print("waiting for instance {0} ...".format(instance.id))
 
     while status == "pending":
         time.sleep(2)
         status = instance.update()
 
     if status != "running":
-        print "Invalid status when starting instance {0}: {1}".format(instance.id, status)
+        print("Invalid status when starting instance {0}: {1}".format(instance.id, status))
         return False
 
-    print "New instance {0} started: {1}".format(instance.id, instance.ip_address)
+    print("New instance {0} started: {1}".format(instance.id, instance.ip_address))
     return True
 
 def initialize_instance_thread(config, instance, abort_event):
@@ -94,7 +97,7 @@ def initialize_instance_thread(config, instance, abort_event):
         return
 
     ssh = get_ssh_connection()
-    print "waiting for ssh on instance {0} {1} ...".format(instance.id, instance.ip_address)
+    print("waiting for ssh on instance {0} {1} ...".format(instance.id, instance.ip_address))
     while True:
         try:
             ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
@@ -118,7 +121,7 @@ def initialize_instance_thread(config, instance, abort_event):
     sftp.close()
 
     ssh.close()
-    print "instance {0} successfully initialized".format(instance.id)
+    print("instance {0} successfully initialized".format(instance.id))
 
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
@@ -126,15 +129,15 @@ def run_command(ssh, instance, command):
     #stdout = chan.makefile("rb")
     stderr = chan.makefile_stderr("rb")
     #for line in iter(stdout.readline, ""):
-    #    print line.rstrip()
+    #    print(line.rstrip())
     for line in iter(stderr.readline, ""):
-        print "instance {0} stderr: {1}".format(instance.id, line.rstrip())
+        print("instance {0} stderr: {1}".format(instance.id, line.rstrip()))
     exit_code = chan.recv_exit_status()
     if exit_code != 0:
-        print "instance {0} invalid exit code of {1}: {2}".format(instance.id, command, exit_code)
+        print("instance {0} invalid exit code of {1}: {2}".format(instance.id, command, exit_code))
         ssh.close() # closes chan as well
         return False
-    print "instance {0} successfully ran {1}".format(instance.id, command)
+    print("instance {0} successfully ran {1}".format(instance.id, command))
 
 def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue):
     ssh = get_ssh_connection()
@@ -142,7 +145,7 @@ def start_worker(config, instance, abort_event, output_queue, processed_files_qu
     try:
         ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
     except:
-        print "could not ssh to {0} {1}".format(instance.id, instance.ip_address)
+        print("could not ssh to {0} {1}".format(instance.id, instance.ip_address))
         abort_event.set()
         sys.exit(1)
 
@@ -178,7 +181,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
         for p in reduce_pids:
             print_pid(p, window, i, "smr-reduce")
             i += 1
-        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / float(files_total)))
+        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / files_total))
         add_str(window, i + 2, "last file processed: {0}".format(get_param("last_file_processed")))
         messages = get_param("messages")[-10:]
         if len(messages) > 0:
@@ -196,7 +199,7 @@ def run(config):
         sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
         sys.exit(1)
 
-    print "getting list of the files to process..."
+    print("getting list of the files to process...")
     file_names = get_uris(config)
     files_total = len(file_names)
 
@@ -211,7 +214,7 @@ def run(config):
     conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
     reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
                                      key_name=config.aws_ec2_keyname, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
-    print "requested to start {0} instances".format(config.aws_ec2_workers)
+    print("requested to start {0} instances".format(config.aws_ec2_workers))
     instances = reservation.instances
     instance_ids = [instance.id for instance in instances]
     abort_event = threading.Event()
@@ -227,7 +230,7 @@ def run(config):
     except KeyboardInterrupt:
         abort_event.set()
         conn.terminate_instances(instance_ids)
-        print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
+        print("user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
         sys.exit(1)
 
     if abort_event.is_set():
@@ -235,7 +238,7 @@ def run(config):
         conn.terminate_instances(instance_ids)
         sys.exit(1)
 
-    print "initialized instance(s) in: {0}".format(str(datetime.datetime.now() - start_time))
+    print("initialized instance(s) in: {0}".format(str(datetime.datetime.now() - start_time)))
     start_time = datetime.datetime.now()
 
     workers = []
@@ -268,8 +271,8 @@ def run(config):
         conn.terminate_instances(instance_ids)
         if config.output_job_progress:
             curses.endwin()
-        print "user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
-        print "partial results are in {0}".format(config.output_filename)
+        print("user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
+        print("partial results are in {0}".format(config.output_filename))
         sys.exit(1)
 
     output_queue.join() # wait for reducer to process everything
@@ -282,7 +285,7 @@ def run(config):
     for chan, _ in workers:
         exit_code = chan.recv_exit_status()
         if exit_code != 0:
-            print "map process exited with code {0}".format(exit_code)
+            print("map process exited with code {0}".format(exit_code))
 
     conn.terminate_instances(instance_ids)
 
@@ -290,15 +293,15 @@ def run(config):
     reduce_worker.join()
     reduce_process.wait()
     if reduce_process.returncode != 0:
-        print "reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode)
-        print "partial results are in {0}".format(config.output_filename)
+        print("reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode))
+        print("partial results are in {0}".format(config.output_filename))
 
     reduce_stdout.close()
     for message in get_param("messages"):
-        print message
+        print(message)
 
-    print "done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time))
-    print "results are in {0}".format(config.output_filename)
+    print("done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
+    print("results are in {0}".format(config.output_filename))
 
 def main():
     config = get_config()
