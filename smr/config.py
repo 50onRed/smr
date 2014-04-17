@@ -109,11 +109,14 @@ def configure_job(args):
         args.output_filename = "results/{}.{}.out".format(args.config, datetime.datetime.now())
 
     # generate args to be passed to smr-map and smr-reduce
-    args.args = [
-        "--aws-access-key", args.aws_access_key,
-        "--aws-secret-key", args.aws_secret_key,
-        args.config
-    ]
+    args.args = []
+    if args.aws_access_key:
+        args.args.append("--aws-access-key")
+        args.args.append(args.aws_access_key)
+    if args.aws_secret_key:
+        args.args.append("--aws-secret-key")
+        args.args.appned(args.aws_secret_key)
+    args.args.append(args.config)
 
     ensure_dir_exists(args.output_filename)
     paramiko_level_str = args.paramiko_log_level.lower()
