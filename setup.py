@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 from setuptools import setup
-from smr.version import __version__
 
 setup(
     name='smr',
-    version=__version__,
+    version='0.0.1',
     description='SMR (Simple Map Reduce) is a simple tool for writing map-reduce jobs in python',
     long_description='SMR (Simple Map Reduce) is a simple tool for writing map-reduce jobs in python',
     author='Ivan Dyedov',
     author_email='ivan@dyedov.com',
-    url='',
+    url='https://github.com/idyedov/smr',
     packages=['smr'],
     install_requires=['boto>=2.27.0', 'paramiko>=1.13.0', 'psutil>=2.0.0'],
     entry_points={
