@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from setuptools import setup
-from smr import __version__
+from smr.version import __version__
 
 setup(
     name='smr',
