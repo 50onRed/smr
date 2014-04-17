@@ -7,7 +7,7 @@ import subprocess
 import sys
 import threading
 
-from . import __version__
+from .version import __version__
 from .config import get_config, configure_job
 from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
 from .uri import get_uris

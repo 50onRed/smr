@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 
-from . import __version__
+from .version import __version__
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,

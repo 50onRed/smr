@@ -1,5 +1,5 @@
 # commands to run for each EC2 instance to initialize smr
-#from . import __version__
+#from .version import __version__
 AWS_EC2_INITIALIZE_SMR_COMMANDS = [
     "while pgrep cloud-init > /dev/null; do sleep 1; done",
     "DEBIAN_FRONTEND=noninteractive",
