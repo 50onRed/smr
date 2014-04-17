@@ -94,18 +94,10 @@ def get_config(args=None):
     parser.add_argument("-v", "--version", action="version", version="SMR {}".format(__version__))
 
     result = parser.parse_args(args)
-    # append args to be passed to smr-map and smr-reduce
-    result.args = args if args else sys.argv[1:]
 
     return result
 
 def configure_job(args):
-    if not hasattr(args, "args"):
-        # generate args to be passed to smr-map and smr-reduce
-        args.args = [
-            "--aws-access-key", args.aws_access_key,
-            "--aws-secret-key", args.aws_secret_key
-        ]
     config = get_config_module(args.config)
 
     # add extra options to args that cannot be specified in cli
@@ -115,6 +107,13 @@ def configure_job(args):
 
     if not args.output_filename:
         args.output_filename = "results/{}.{}.out".format(args.config, datetime.datetime.now())
+
+    # generate args to be passed to smr-map and smr-reduce
+    args.args = [
+        "--aws-access-key", args.aws_access_key,
+        "--aws-secret-key", args.aws_secret_key,
+        args.config
+    ]
 
     ensure_dir_exists(args.output_filename)
     paramiko_level_str = args.paramiko_log_level.lower()
