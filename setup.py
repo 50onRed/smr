@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='smr',
-    version='0.0.1',
+    version='0.0.2',
     description='SMR (Simple Map Reduce) is a simple tool for writing map-reduce jobs in python',
     long_description='SMR (Simple Map Reduce) is a simple tool for writing map-reduce jobs in python',
     author='Ivan Dyedov',
