@@ -17,7 +17,7 @@ import time
 
 from .version import __version__
 from .config import get_config, configure_job
-from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str, ensure_dir_exists
 from .uri import get_uris
 
 def get_ssh_connection():
@@ -245,6 +245,10 @@ def run(config):
     for instance in instances:
         for _ in xrange(config.workers):
             workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue))
+
+    if not config.output_filename:
+        config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())
+    ensure_dir_exists(config.output_filename)
 
     reduce_stdout = open(config.output_filename, "w")
     reduce_process = subprocess.Popen(["smr-reduce"] + config.args, stdin=subprocess.PIPE, stdout=reduce_stdout)

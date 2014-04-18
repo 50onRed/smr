@@ -1,5 +1,4 @@
 import argparse
-import datetime
 import logging
 import os
 import sys
@@ -32,11 +31,6 @@ class DefaultConfig(object):
 
 def get_default_config():
     return DefaultConfig()
-
-def ensure_dir_exists(path):
-    dir_name = os.path.dirname(path)
-    if dir_name != '' and not os.path.exists(dir_name):
-        os.makedirs(dir_name)
 
 def get_config_module(config_name):
     if config_name.endswith(".py"):
@@ -105,9 +99,6 @@ def configure_job(args):
                 "AWS_EC2_INITIALIZE_SMR_COMMANDS", "INPUT_DATA", "PIP_REQUIREMENTS"):
         setattr(args, arg, getattr(config, arg))
 
-    if not args.output_filename:
-        args.output_filename = "results/{}.{}.out".format(args.config, datetime.datetime.now())
-
     # generate args to be passed to smr-map and smr-reduce
     args.args = []
     if args.aws_access_key:
@@ -118,7 +109,6 @@ def configure_job(args):
         args.args.append(args.aws_secret_key)
     args.args.append(args.config)
 
-    ensure_dir_exists(args.output_filename)
     paramiko_level_str = args.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
     logging.getLogger("paramiko").setLevel(paramiko_level)

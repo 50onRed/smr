@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 
 import curses
+import os
 from Queue import Empty
 
 GLOBAL_SHARED_DATA = {
@@ -73,3 +74,8 @@ def write_file_to_descriptor(input_queue, descriptor):
         return False
     except IOError:
         return False # probably bad descriptor
+
+def ensure_dir_exists(path):
+    dir_name = os.path.dirname(path)
+    if dir_name != '' and not os.path.exists(dir_name):
+        os.makedirs(dir_name)

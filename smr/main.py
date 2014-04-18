@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division,
 
 import curses
 import datetime
+import os
 import psutil
 from Queue import Queue
 import subprocess
@@ -12,7 +13,7 @@ import threading
 
 from .version import __version__
 from .config import get_config, configure_job
-from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str
+from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str, ensure_dir_exists
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -110,6 +111,10 @@ def run(config):
         rew.daemon = True
         rew.start()
         read_workers.append(rew)
+
+    if not config.output_filename:
+        config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())
+    ensure_dir_exists(config.output_filename)
 
     reduce_stdout = open(config.output_filename, "w")
     reduce_process = subprocess.Popen(["smr-reduce"] + config.args, bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout)
