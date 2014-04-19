@@ -19,7 +19,7 @@ class DefaultConfig(object):
         self.workers = 8
         self.output_job_progress = True
         self.aws_ec2_region = "us-east-1"
-        self.aws_ec2_ami = "ami-89181be0"
+        self.aws_ec2_ami = "ami-7fe7fe16"
         self.aws_ec2_instance_type = "m3.large"
         self.aws_ec2_local_keyfile = "~/.ssh/id_rsa"
         self.aws_ec2_security_group = ["default"]
