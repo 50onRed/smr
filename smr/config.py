@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+
 import argparse
 import logging
 import os
@@ -51,12 +54,24 @@ def get_config_module(config_name):
         sys.exit(1)
 
     # settings that are not overriden need to be set to defaults
-    from . import default_config
-    for k, v in default_config.__dict__.iteritems():
-        if k.startswith("_"):
-            continue
-        if not hasattr(config, k):
-            setattr(config, k, v)
+    if not hasattr(config, "AWS_EC2_INITIALIZE_SMR_COMMANDS"):
+        setattr(config, "AWS_EC2_INITIALIZE_SMR_COMMANDS", [
+            "while pgrep cloud-init > /dev/null; do sleep 1; done",
+            "DEBIAN_FRONTEND=noninteractive",
+            "sudo apt-get update",
+            #"sudo apt-get -q -y install python-pip python-dev",
+            "sudo apt-get -q -y install python-pip python-dev git",
+            #"sudo pip install smr=={}".format(__version__)
+            "sudo pip install git+git://github.com/idyedov/smr.git"
+        ])
+    if not hasattr(config, "PIP_REQUIREMENTS"):
+        setattr(config, "PIP_REQUIREMENTS", None)
+    if not hasattr(config, "MAP_FUNC"):
+        setattr(config, "MAP_FUNC", None)
+    if not hasattr(config, "REDUCE_FUNC"):
+        setattr(config, "REDUCE_FUNC", None)
+    if not hasattr(config, "OUTPUT_RESULTS_FUNC"):
+        setattr(config, "OUTPUT_RESULTS_FUNC", lambda x: print("done"))
 
     return config
 
