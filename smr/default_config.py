@@ -7,10 +7,10 @@ AWS_EC2_INITIALIZE_SMR_COMMANDS = [
     "while pgrep cloud-init > /dev/null; do sleep 1; done",
     "DEBIAN_FRONTEND=noninteractive",
     "sudo apt-get update",
-    "sudo apt-get -q -y install python-pip python-dev",
-    #"sudo apt-get -q -y install python-pip python-dev git",
-    "sudo pip install smr=={}".format(__version__)
-    #"sudo pip install git+git://github.com/idyedov/smr.git"
+    #"sudo apt-get -q -y install python-pip python-dev",
+    "sudo apt-get -q -y install python-pip python-dev git",
+    #"sudo pip install smr=={}".format(__version__)
+    "sudo pip install git+git://github.com/idyedov/smr.git"
 ]
 PIP_REQUIREMENTS = None
 
