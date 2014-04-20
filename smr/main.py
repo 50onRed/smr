@@ -41,6 +41,8 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
             file_name = line[1:]
             processed_files_queue.put(file_name)
         elif line.startswith("!"):
+            file_name = line[1:]
+            add_message("error processing {}, requeuing...".format(file_name))
             input_queue.put(line[1:]) # re-queue file
         else:
             add_message("invalid message received from mapper: {0}".format(line))

@@ -48,7 +48,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
             processed_files_queue.put(file_name)
         elif line.startswith("!"):
             file_name = line[1:]
-            add_message("error processing {0}, requeuing...".format(file_name))
+            add_message("error processing {}, requeuing...".format(file_name))
             input_queue.put(file_name)
         else:
             add_message("invalid message received from mapper: {0}".format(line))
@@ -241,33 +241,33 @@ def run(config):
     print("initialized instance(s) in: {0}".format(str(datetime.datetime.now() - start_time)))
     start_time = datetime.datetime.now()
 
-    workers = []
-    for instance in instances:
-        for _ in xrange(config.workers):
-            workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue))
-
-    if not config.output_filename:
-        config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())
-    ensure_dir_exists(config.output_filename)
-
-    reduce_stdout = open(config.output_filename, "w")
-    reduce_process = subprocess.Popen(["smr-reduce"] + config.args, stdin=subprocess.PIPE, stdout=reduce_stdout)
-
-    reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
-    #reduce_worker.daemon = True
-    reduce_worker.start()
-
-    progress_worker = threading.Thread(target=progress_thread, args=(processed_files_queue, abort_event))
-    #progress_worker.daemon = True
-    progress_worker.start()
-
-    if config.output_job_progress:
-        window = curses.initscr()
-        curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, files_total))
-        #curses_worker.daemon = True
-        curses_worker.start()
-
     try:
+        workers = []
+        for instance in instances:
+            for _ in xrange(config.workers):
+                workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue))
+
+        if not config.output_filename:
+            config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())
+        ensure_dir_exists(config.output_filename)
+
+        reduce_stdout = open(config.output_filename, "w")
+        reduce_process = subprocess.Popen(["smr-reduce"] + config.args, stdin=subprocess.PIPE, stdout=reduce_stdout)
+
+        reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
+        #reduce_worker.daemon = True
+        reduce_worker.start()
+
+        progress_worker = threading.Thread(target=progress_thread, args=(processed_files_queue, abort_event))
+        #progress_worker.daemon = True
+        progress_worker.start()
+
+        if config.output_job_progress:
+            window = curses.initscr()
+            curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, files_total))
+            #curses_worker.daemon = True
+            curses_worker.start()
+
         for _, w in workers:
             w.join()
     except KeyboardInterrupt:
