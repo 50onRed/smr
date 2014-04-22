@@ -71,7 +71,9 @@ def get_config_module(config_name):
     if not hasattr(config, "REDUCE_FUNC"):
         setattr(config, "REDUCE_FUNC", None)
     if not hasattr(config, "OUTPUT_RESULTS_FUNC"):
-        setattr(config, "OUTPUT_RESULTS_FUNC", lambda x: print("done"))
+        def default_output_results_func():
+            print("done")
+        setattr(config, "OUTPUT_RESULTS_FUNC", default_output_results_func)
 
     return config
 
