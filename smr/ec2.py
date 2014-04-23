@@ -252,7 +252,7 @@ def run(config):
         ensure_dir_exists(config.output_filename)
 
         reduce_stdout = open(config.output_filename, "w")
-        reduce_process = subprocess.Popen(["smr-reduce"] + config.args, stdin=subprocess.PIPE, stdout=reduce_stdout)
+        reduce_process = subprocess.Popen(["smr-reduce"] + config.args, stdin=subprocess.PIPE, stdout=reduce_stdout, stderr=subprocess.PIPE)
 
         reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
         #reduce_worker.daemon = True
@@ -295,7 +295,9 @@ def run(config):
 
     # wait for reduce to finish before exiting
     reduce_worker.join()
-    reduce_process.wait()
+    (_, stderr) = reduce_process.communicate()
+    if stderr:
+        sys.stderr.write(stderr)
     if reduce_process.returncode != 0:
         print("reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode))
         print("partial results are in {0}".format(config.output_filename))
