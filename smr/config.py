@@ -50,7 +50,7 @@ def get_config_module(config_name):
     try:
         config = __import__(config_module)
     except ImportError:
-        sys.stderr.write("Invalid job definition provided: {0}\n".format(config_module))
+        sys.stderr.write("Invalid job definition provided: {}\n".format(config_module))
         sys.exit(1)
 
     # settings that are not overriden need to be set to defaults

@@ -56,4 +56,4 @@ def REDUCE_FUNC(word):
 
 def OUTPUT_RESULTS_FUNC():
     for word, count in sorted(global_result.iteritems(), key=lambda x: x[1], reverse=True):
-        print("{0},{1}".format(word.encode("utf-8"), count))
+        print("{},{}".format(word, count))

@@ -32,7 +32,7 @@ def print_pid(process, window, line_num, process_name):
         cpu_percent = process.cpu_percent(0.1)
     except:
         cpu_percent = 0.0
-    add_str(window, line_num, "  {0} pid {1} CPU {2}".format(process_name, process.pid, cpu_percent))
+    add_str(window, line_num, "  {} pid {} CPU {}".format(process_name, process.pid, cpu_percent))
 
 def add_str(window, line_num, str):
     """ attempt to draw str on screen and ignore errors if they occur """
@@ -64,7 +64,7 @@ def write_file_to_descriptor(input_queue, descriptor):
     """
     try:
         file_name = input_queue.get(timeout=2)
-        descriptor.write("{0}\n".format(file_name))
+        descriptor.write("{}\n".format(file_name))
         descriptor.flush()
         input_queue.task_done()
         return True

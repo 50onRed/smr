@@ -21,13 +21,13 @@ def get_s3_uri(m, file_names, config):
     path = m.group(2)
     bucket = get_s3_bucket(bucket_name, config)
     for key in bucket.list(prefix=path):
-        file_names.append("s3://{0}/{1}".format(bucket_name, key.name))
+        file_names.append("s3://{}/{}".format(bucket_name, key.name))
 
 def get_local_uri(m, file_names, _):
     path = m.group(2)
     for _, _, files in os.walk(path):
         for file_name in files:
-            file_names.append("file:/{0}".format(os.path.join(path, file_name)))
+            file_names.append("file:/{}".format(os.path.join(path, file_name)))
 
 def download_s3_uri(m, config):
     bucket_name = m.group(1)
@@ -65,7 +65,7 @@ def get_uris(config):
             if m is not None:
                 uri_method(m, file_names, config)
                 break
-    print("going to process {0} files...".format(len(file_names)))
+    print("going to process {} files...".format(len(file_names)))
     return file_names
 
 def get_download_method(config, uri):

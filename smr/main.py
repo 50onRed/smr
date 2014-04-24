@@ -45,7 +45,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
             add_message("error processing {}, requeuing...".format(file_name))
             input_queue.put(line[1:]) # re-queue file
         else:
-            add_message("invalid message received from mapper: {0}".format(line))
+            add_message("invalid message received from mapper: {}".format(line))
 
         if abort_event.is_set() or not write_file_to_descriptor(input_queue, map_process.stdin):
             break
@@ -63,7 +63,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
             break
         window.clear()
         now = datetime.datetime.now()
-        add_str(window, 0, "smr v{0} - {1} - elapsed: {2}".format(__version__, datetime.datetime.ctime(now), now - start_time))
+        add_str(window, 0, "smr v{} - {} - elapsed: {}".format(__version__, datetime.datetime.ctime(now), now - start_time))
         i = 1
         for p in map_pids:
             print_pid(p, window, i, "smr-map")
@@ -73,13 +73,13 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
             i += 1
 
         add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / files_total))
-        add_str(window, i + 2, "last file processed: {0}".format(get_param("last_file_processed")))
+        add_str(window, i + 2, "last file processed: {}".format(get_param("last_file_processed")))
         messages = get_param("messages")[-10:]
         if len(messages) > 0:
             add_str(window, i + 3, "last messages:")
             i += 4
             for message in messages:
-                add_str(window, i, "  {0}".format(message))
+                add_str(window, i, "  {}".format(message))
                 i += 1
         if not abort_event.is_set():
             window.refresh()
@@ -142,8 +142,8 @@ def run(config):
         abort_event.set()
         if config.output_job_progress:
             curses.endwin()
-        print("user aborted. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
-        print("partial results are in {0}".format(config.output_filename))
+        print("user aborted. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
+        print("partial results are in {}".format(config.output_filename))
         sys.exit(1)
 
     output_queue.join() # wait for reducer to process everything
@@ -154,8 +154,8 @@ def run(config):
 
     for map_process in map_processes:
         if map_process.returncode != 0:
-            print("map process {0} exited with code {1}".format(map_process.pid, map_process.returncode))
-            print("partial results are in {0}".format(config.output_filename))
+            print("map process {} exited with code {}".format(map_process.pid, map_process.returncode))
+            print("partial results are in {}".format(config.output_filename))
 
     # wait for reduce to finish before exiting
     reduce_worker.join()
@@ -163,15 +163,15 @@ def run(config):
     if stderr:
         sys.stderr.write(stderr)
     if reduce_process.returncode != 0:
-        print("reduce process {0} exited with code {1}".format(reduce_process.pid, reduce_process.returncode))
-        print("partial results are in {0}".format(config.output_filename))
+        print("reduce process {} exited with code {}".format(reduce_process.pid, reduce_process.returncode))
+        print("partial results are in {}".format(config.output_filename))
 
     reduce_stdout.close()
     for message in get_param("messages"):
         print(message)
 
-    print("done. elapsed time: {0}".format(str(datetime.datetime.now() - start_time)))
-    print("results are in {0}".format(config.output_filename))
+    print("done. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
+    print("results are in {}".format(config.output_filename))
 
 def main():
     config = get_config()

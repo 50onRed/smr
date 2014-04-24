@@ -10,7 +10,7 @@ from .config import get_config, configure_job
 from .uri import get_download_method
 
 def write_to_stderr(prefix, file_name):
-    sys.stderr.write("{0}{1}\n".format(prefix, file_name))
+    sys.stderr.write("{}{}\n".format(prefix, file_name))
     sys.stderr.flush()
 
 def run(config):
@@ -25,10 +25,10 @@ def run(config):
                 config.MAP_FUNC(temp_filename)
                 write_to_stderr("+", uri)
             except (KeyboardInterrupt, SystemExit):
-                sys.stderr.write("map worker {0} aborted\n".format(os.getpid()))
+                sys.stderr.write("map worker {} aborted\n".format(os.getpid()))
                 sys.exit(1)
             except Exception as e:
-                sys.stderr.write("{0}\n".format(e))
+                sys.stderr.write("{}\n".format(e))
                 write_to_stderr("!", uri)
             finally:
                 os.close(temp_file)
@@ -37,7 +37,7 @@ def run(config):
                 except OSError:
                     pass
     except (KeyboardInterrupt, SystemExit):
-        sys.stderr.write("map worker {0} aborted\n".format(os.getpid()))
+        sys.stderr.write("map worker {} aborted\n".format(os.getpid()))
         sys.exit(1)
 
 def main():
