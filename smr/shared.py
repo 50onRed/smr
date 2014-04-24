@@ -25,7 +25,9 @@ def reduce_thread(reduce_process, output_queue, abort_event):
             output_queue.task_done()
         except Empty:
             pass
-    reduce_process.stdin.close()
+    # we're calling communicate() on the process, which flushes stdin
+    # so we can't close it here
+    #reduce_process.stdin.close()
 
 def print_pid(process, window, line_num, process_name):
     try:
