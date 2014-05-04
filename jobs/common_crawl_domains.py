@@ -24,7 +24,7 @@ global_result = {}
 
 # These are required to run smr-ec2, 
 # they can be passed on the command line as:
-# --aws-access-key, --aws-secret-key, --aws-ec2-keyname, --aws-ec2-local-keyfile
+# --aws-access-key, --aws-secret-key
 
 PIP_REQUIREMENTS = ["warc==0.2.1"]
 

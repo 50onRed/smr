@@ -20,6 +20,8 @@ from .config import get_config, configure_job
 from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str, ensure_dir_exists
 from .uri import get_uris
 
+RSA_BITS = 2048
+
 def get_ssh_connection():
     ssh_connection = paramiko.SSHClient()
     ssh_connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -91,7 +93,7 @@ def wait_for_instance(instance):
     print("New instance {} started: {}".format(instance.id, instance.ip_address))
     return True
 
-def initialize_instance_thread(config, instance, abort_event):
+def initialize_instance_thread(config, instance, abort_event, ssh_key):
     if not wait_for_instance(instance):
         abort_event.set()
         return
@@ -100,16 +102,12 @@ def initialize_instance_thread(config, instance, abort_event):
     print("waiting for ssh on instance {} {} ...".format(instance.id, instance.ip_address))
     while True:
         try:
-            ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
+            ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, pkey=ssh_key)
         except:
             time.sleep(2)
             continue
         else:
             break
-
-    # initialize smr on this ec2 instance
-    for command in config.AWS_EC2_INITIALIZE_SMR_COMMANDS:
-        run_command(ssh, instance, command)
 
     if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
         for package in config.PIP_REQUIREMENTS:
@@ -139,11 +137,11 @@ def run_command(ssh, instance, command):
         return False
     print("instance {} successfully ran {}".format(instance.id, command))
 
-def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue):
+def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key):
     ssh = get_ssh_connection()
 
     try:
-        ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, key_filename=os.path.expanduser(config.aws_ec2_local_keyfile))
+        ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, pkey=ssh_key)
     except:
         print("could not ssh to {} {}".format(instance.id, instance.ip_address))
         abort_event.set()
@@ -195,9 +193,6 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
 
 def run(config):
     configure_job(config)
-    if not config.aws_ec2_keyname:
-        sys.stderr.write("invalid AWS_EC2_KEYNAME\n")
-        sys.exit(1)
 
     print("getting list of the files to process...")
     file_names = get_uris(config)
@@ -211,16 +206,28 @@ def run(config):
 
     start_time = datetime.datetime.now()
 
+    print("generating a new RSA key...")
+    ssh_key = paramiko.RSAKey.generate(bits=RSA_BITS)
+
+    user_data = """#!/bin/bash -v
+apt-get update
+apt-get upgrade -y
+#apt-get -q -y install python-pip python-dev
+apt-get -q -y install python-pip python-dev git
+#pip install smr=={smr_version}
+pip install git+git://github.com/idyedov/smr.git
+echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
+""".format(smr_version=__version__, public_key=ssh_key.get_base64(), user=config.aws_ec2_ssh_username)
     conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
     reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
-                                     key_name=config.aws_ec2_keyname, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
+                                     user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
     print("requested to start {} instances".format(config.aws_ec2_workers))
     instances = reservation.instances
     instance_ids = [instance.id for instance in instances]
     abort_event = threading.Event()
     initialization_threads = []
     for instance in instances:
-        initialization_thread = threading.Thread(target=initialize_instance_thread, args=(config, instance, abort_event))
+        initialization_thread = threading.Thread(target=initialize_instance_thread, args=(config, instance, abort_event, ssh_key))
         initialization_thread.start()
         initialization_threads.append(initialization_thread)
 
@@ -245,7 +252,7 @@ def run(config):
         workers = []
         for instance in instances:
             for _ in xrange(config.workers):
-                workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue))
+                workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key))
 
         if not config.output_filename:
             config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())

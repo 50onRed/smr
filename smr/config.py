@@ -24,7 +24,6 @@ class DefaultConfig(object):
         self.aws_ec2_region = "us-east-1"
         self.aws_ec2_ami = "ami-7fe7fe16"
         self.aws_ec2_instance_type = "m3.large"
-        self.aws_ec2_local_keyfile = "~/.ssh/id_rsa"
         self.aws_ec2_security_group = ["default"]
         self.aws_ec2_ssh_username = "ubuntu"
         self.aws_ec2_workers = 1
@@ -53,17 +52,6 @@ def get_config_module(config_name):
         sys.stderr.write("Invalid job definition provided: {}\n".format(config_module))
         sys.exit(1)
 
-    # settings that are not overriden need to be set to defaults
-    if not hasattr(config, "AWS_EC2_INITIALIZE_SMR_COMMANDS"):
-        setattr(config, "AWS_EC2_INITIALIZE_SMR_COMMANDS", [
-            "while pgrep cloud-init > /dev/null; do sleep 1; done",
-            "DEBIAN_FRONTEND=noninteractive",
-            "sudo apt-get update",
-            #"sudo apt-get -q -y install python-pip python-dev",
-            "sudo apt-get -q -y install python-pip python-dev git",
-            #"sudo pip install smr=={}".format(__version__)
-            "sudo pip install git+git://github.com/idyedov/smr.git"
-        ])
     if not hasattr(config, "PIP_REQUIREMENTS"):
         setattr(config, "PIP_REQUIREMENTS", None)
     if not hasattr(config, "MAP_FUNC"):
@@ -93,8 +81,6 @@ def get_config(args=None):
     parser.add_argument("--aws-ec2-region", help="region to use when running smr-ec2 workers", default=default_config.aws_ec2_region)
     parser.add_argument("--aws-ec2-ami", help="AMI to use when running smr-ec2 workers", default=default_config.aws_ec2_ami)
     parser.add_argument("--aws-ec2-instance-type", help="instance type to use for EC2 instances", default=default_config.aws_ec2_instance_type)
-    parser.add_argument("--aws-ec2-keyname", help="keyname to use for starting EC2 instances")
-    parser.add_argument("--aws-ec2-local-keyfile", help="local private key file used for ssh access to EC2 instances", default=default_config.aws_ec2_local_keyfile)
     parser.add_argument("--aws-ec2-security-group", help="security group to use for accessing EC2 workers (needs port 22 open)", nargs="*", default=default_config.aws_ec2_security_group)
     parser.add_argument("--aws-ec2-ssh-username", help="username to use when logging into EC2 workers over SSH", default=default_config.aws_ec2_ssh_username)
     parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=default_config.aws_ec2_workers)
@@ -113,7 +99,7 @@ def configure_job(args):
 
     # add extra options to args that cannot be specified in cli
     for arg in ("MAP_FUNC", "REDUCE_FUNC", "OUTPUT_RESULTS_FUNC",
-                "AWS_EC2_INITIALIZE_SMR_COMMANDS", "INPUT_DATA", "PIP_REQUIREMENTS"):
+                "INPUT_DATA", "PIP_REQUIREMENTS"):
         setattr(args, arg, getattr(config, arg))
 
     # generate args to be passed to smr-map and smr-reduce
@@ -129,3 +115,4 @@ def configure_job(args):
     paramiko_level_str = args.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
     logging.getLogger("paramiko").setLevel(paramiko_level)
+    logging.getLogger("paramiko.transport").addHandler(logging.NullHandler())
