@@ -84,6 +84,17 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
         if not abort_event.is_set():
             window.refresh()
 
+def get_args(process, config):
+    args = [process]
+    if config.aws_access_key:
+        args.append("--aws-access-key")
+        args.append(config.aws_access_key)
+    if config.aws_secret_key:
+        args.append("--aws-secret-key")
+        args.append(config.aws_secret_key)
+    args.append(config.config)
+    return args
+
 def run(config):
     configure_job(config)
     print("getting list of the files to process...")
@@ -99,10 +110,12 @@ def run(config):
     start_time = datetime.datetime.now()
     abort_event = threading.Event()
 
+    map_args = get_args("smr-map", config)
+
     map_processes = []
     read_workers = []
     for _ in xrange(config.workers):
-        map_process = subprocess.Popen(["smr-map"] + config.args, bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        map_process = subprocess.Popen(map_args, bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         map_processes.append(map_process)
 
         row = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, map_process, abort_event))
@@ -119,7 +132,7 @@ def run(config):
     ensure_dir_exists(config.output_filename)
 
     reduce_stdout = open(config.output_filename, "w")
-    reduce_process = subprocess.Popen(["smr-reduce"] + config.args, bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout, stderr=subprocess.PIPE)
+    reduce_process = subprocess.Popen(get_args("smr-reduce", config), bufsize=0, stdin=subprocess.PIPE, stdout=reduce_stdout, stderr=subprocess.PIPE)
 
     reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
     #reduce_worker.daemon = True

@@ -102,16 +102,6 @@ def configure_job(args):
                 "INPUT_DATA", "PIP_REQUIREMENTS"):
         setattr(args, arg, getattr(config, arg))
 
-    # generate args to be passed to smr-map and smr-reduce
-    args.args = []
-    if args.aws_access_key:
-        args.args.append("--aws-access-key")
-        args.args.append(args.aws_access_key)
-    if args.aws_secret_key:
-        args.args.append("--aws-secret-key")
-        args.args.append(args.aws_secret_key)
-    args.args.append(args.config)
-
     paramiko_level_str = args.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
     logging.getLogger("paramiko").setLevel(paramiko_level)
