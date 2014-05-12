@@ -102,7 +102,7 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
     print("waiting for ssh on instance {} {} ...".format(instance.id, instance.ip_address))
     while True:
         try:
-            ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, pkey=ssh_key)
+            ssh.connect(instance.ip_address, username=config.aws_ec2_ssh_username, pkey=ssh_key, look_for_keys=False, timeout=2.0)
         except:
             time.sleep(2)
             continue
