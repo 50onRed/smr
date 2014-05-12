@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division,
 
 import boto
 import boto.ec2
+from boto.exception import EC2ResponseError
 import curses
 import datetime
 import os
@@ -77,9 +78,13 @@ def wait_for_instance(instance):
     status = None
     print("getting status for instance {} ...".format(instance.id))
     while status is None:
-        status = instance.update()
-        if status is None:
+        try:
+            status = instance.update()
+            if status is None:
+                time.sleep(2)
+        except EC2ResponseError:
             time.sleep(2)
+
     print("waiting for instance {} ...".format(instance.id))
 
     while status == "pending":
