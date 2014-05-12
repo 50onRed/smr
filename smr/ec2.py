@@ -137,7 +137,7 @@ def run_command(ssh, instance, command):
         return False
     print("instance {} successfully ran {}".format(instance.id, command))
 
-def get_args(process, config):
+def get_args(process, config, config_path):
     args = [process]
     if config.aws_access_key:
         args.append("--aws-access-key")
@@ -145,7 +145,7 @@ def get_args(process, config):
     if config.aws_secret_key:
         args.append("--aws-secret-key")
         args.append(config.aws_secret_key)
-    args.append(config.aws_ec2_remote_config_path)
+    args.append(config_path)
     return args
 
 def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key):
@@ -159,7 +159,7 @@ def start_worker(config, instance, abort_event, output_queue, processed_files_qu
         sys.exit(1)
 
     chan = ssh.get_transport().open_session()
-    chan.exec_command(" ".join(get_args("smr-map", config)))
+    chan.exec_command(" ".join(get_args("smr-map", config, config.aws_ec2_remote_config_path)))
 
     stdout_thread = threading.Thread(target=worker_stdout_read_thread, args=(output_queue, chan))
     stdout_thread.daemon = True
@@ -270,7 +270,7 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
         ensure_dir_exists(config.output_filename)
 
         reduce_stdout = open(config.output_filename, "w")
-        reduce_process = subprocess.Popen(get_args("smr-reduce", config), stdin=subprocess.PIPE, stdout=reduce_stdout, stderr=subprocess.PIPE)
+        reduce_process = subprocess.Popen(get_args("smr-reduce", config, config.config), stdin=subprocess.PIPE, stdout=reduce_stdout, stderr=subprocess.PIPE)
 
         reduce_worker = threading.Thread(target=reduce_thread, args=(reduce_process, output_queue, abort_event))
         #reduce_worker.daemon = True
