@@ -100,6 +100,9 @@ def run(config):
     print("getting list of the files to process...")
     file_names = get_uris(config)
     files_total = len(file_names)
+    if files_total <= 0:
+        print("no files to process")
+        sys.exit(1)
 
     input_queue = Queue(files_total)
     for file_name in file_names:
