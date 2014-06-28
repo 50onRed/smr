@@ -32,6 +32,7 @@ def run(config):
                 sys.stderr.write("{}\n".format(e))
                 write_to_stderr("!", 0, uri)
             finally:
+                sys.stdout.flush() # force stdout flush after every file processed
                 os.close(temp_file)
                 try:
                     os.unlink(temp_filename)
