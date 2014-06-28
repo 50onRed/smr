@@ -315,13 +315,6 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
         curses_worker.join()
         curses.endwin()
 
-    for chan, _ in workers:
-        exit_code = chan.recv_exit_status()
-        if exit_code != 0:
-            print("map process exited with code {}".format(exit_code))
-
-    conn.terminate_instances(instance_ids)
-
     # wait for reduce to finish before exiting
     reduce_worker.join()
     (_, stderr) = reduce_process.communicate()
@@ -330,10 +323,19 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
     if reduce_process.returncode != 0:
         print("reduce process {} exited with code {}".format(reduce_process.pid, reduce_process.returncode))
         print("partial results are in {}".format(config.output_filename))
+        conn.terminate_instances(instance_ids)
+        sys.exit(1)
 
     reduce_stdout.close()
     for message in get_param("messages"):
         print(message)
+
+    for chan, _ in workers:
+        exit_code = chan.recv_exit_status()
+        if exit_code != 0:
+            print("map process exited with code {}".format(exit_code))
+
+    conn.terminate_instances(instance_ids)
 
     print("done. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
     print("results are in {}".format(config.output_filename))

@@ -55,7 +55,8 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
 
         check_map_process(map_process, abort_event)
 
-    map_process.wait()
+    if not abort_event.is_set():
+        map_process.wait()
 
 def curses_thread(config, abort_event, map_processes, reduce_processes, window, start_time, bytes_total):
     map_pids = [psutil.Process(x.pid) for x in map_processes]
@@ -165,16 +166,13 @@ def run(config):
         print("partial results are in {}".format(config.output_filename))
         sys.exit(1)
 
-    output_queue.join() # wait for reducer to process everything
-    abort_event.set()
+    if not abort_event.is_set():
+        output_queue.join() # wait for reducer to process everything
+        abort_event.set()
+
     if config.output_job_progress:
         curses_worker.join()
         curses.endwin()
-
-    for map_process in map_processes:
-        if map_process.returncode != 0:
-            print("map process {} exited with code {}".format(map_process.pid, map_process.returncode))
-            print("partial results are in {}".format(config.output_filename))
 
     # wait for reduce to finish before exiting
     reduce_worker.join()
@@ -184,6 +182,13 @@ def run(config):
     if reduce_process.returncode != 0:
         print("reduce process {} exited with code {}".format(reduce_process.pid, reduce_process.returncode))
         print("partial results are in {}".format(config.output_filename))
+        sys.exit(1)
+
+    for map_process in map_processes:
+        if map_process.returncode != 0:
+            print("map process {} exited with code {}".format(map_process.pid, map_process.returncode))
+            print("partial results are in {}".format(config.output_filename))
+            sys.exit(1)
 
     reduce_stdout.close()
     for message in get_param("messages"):
