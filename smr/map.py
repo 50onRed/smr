@@ -9,8 +9,8 @@ import tempfile
 from .config import get_config, configure_job
 from .uri import get_download_method
 
-def write_to_stderr(prefix, file_name):
-    sys.stderr.write("{}{}\n".format(prefix, file_name))
+def write_to_stderr(file_status, file_size, file_name):
+    sys.stderr.write("{},{},{}\n".format(file_status, file_size, file_name))
     sys.stderr.flush()
 
 def run(config):
@@ -22,14 +22,15 @@ def run(config):
             dl = get_download_method(config, uri)
             try:
                 dl(temp_filename)
+                file_size = os.path.getsize(temp_filename)
                 config.MAP_FUNC(temp_filename)
-                write_to_stderr("+", uri)
+                write_to_stderr("+", file_size, uri)
             except (KeyboardInterrupt, SystemExit):
                 sys.stderr.write("map worker {} aborted\n".format(os.getpid()))
                 sys.exit(1)
             except Exception as e:
                 sys.stderr.write("{}\n".format(e))
-                write_to_stderr("!", uri)
+                write_to_stderr("!", 0, uri)
             finally:
                 os.close(temp_file)
                 try:

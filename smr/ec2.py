@@ -46,15 +46,18 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, chan, ssh, abo
 
     for line in iter(stderr.readline, ""):
         line = line.rstrip() # remove trailing linebreak
-        if line.startswith("+"):
-            file_name = line[1:]
-            processed_files_queue.put(file_name)
-        elif line.startswith("!"):
-            file_name = line[1:]
-            add_message("error processing {}, requeuing...".format(file_name))
-            input_queue.put(file_name)
-        else:
+        splt = line.split(",", 2)
+        if len(splt) != 3:
             add_message("invalid message received from mapper: {}".format(line))
+        else:
+            file_status, file_size, file_name = splt
+            if file_status == "+":
+                processed_files_queue.put((file_name, int(file_size)))
+            elif file_status == "!":
+                add_message("error processing {}, requeuing...".format(file_name))
+                input_queue.put(file_name) # re-queue file
+            else:
+                add_message("invalid status received from mapper: {}".format(file_status))
 
         if abort_event.is_set():
             break
@@ -176,7 +179,7 @@ def start_worker(config, instance, abort_event, output_queue, processed_files_qu
 
     return (chan, stderr_thread)
 
-def curses_thread(config, abort_event, instances, reduce_processes, window, start_time, files_total):
+def curses_thread(config, abort_event, instances, reduce_processes, window, start_time, bytes_total):
     reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
     sleep_time = config.screen_refresh_interval - (config.cpu_usage_interval * len(reduce_pids))
     while not abort_event.is_set() and sleep_time > 0 and not abort_event.wait(sleep_time):
@@ -195,7 +198,7 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
         for p in reduce_pids:
             print_pid(p, window, i, "smr-reduce")
             i += 1
-        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / files_total))
+        add_str(window, i + 1, "job progress: {0:%}".format(get_param("bytes_processed") / bytes_total))
         add_str(window, i + 2, "last file processed: {}".format(get_param("last_file_processed")))
         messages = get_param("messages")[-10:]
         if len(messages) > 0:
@@ -211,7 +214,7 @@ def run(config):
     configure_job(config)
 
     print("getting list of the files to process...")
-    file_names = get_uris(config)
+    bytes_total, file_names = get_uris(config)
     files_total = len(file_names)
     if files_total <= 0:
         print("no files to process")
@@ -290,7 +293,7 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
 
         if config.output_job_progress:
             window = curses.initscr()
-            curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, files_total))
+            curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, instances, [reduce_process], window, start_time, bytes_total))
             #curses_worker.daemon = True
             curses_worker.start()
 

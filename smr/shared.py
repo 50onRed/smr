@@ -7,6 +7,7 @@ from Queue import Empty
 
 GLOBAL_SHARED_DATA = {
     "files_processed": 0,
+    "bytes_processed": 0,
     "last_file_processed": "",
     "messages": []
 }
@@ -46,8 +47,9 @@ def add_str(window, line_num, str):
 def progress_thread(processed_files_queue, abort_event):
     while not abort_event.is_set():
         try:
-            file_name = processed_files_queue.get(timeout=2)
+            file_name, file_size = processed_files_queue.get(timeout=2)
             GLOBAL_SHARED_DATA["files_processed"] += 1
+            GLOBAL_SHARED_DATA["bytes_processed"] += file_size
             GLOBAL_SHARED_DATA["last_file_processed"] = file_name
             processed_files_queue.task_done()
         except Empty:

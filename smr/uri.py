@@ -17,17 +17,32 @@ def get_s3_bucket(bucket_name, config):
     return S3_BUCKETS[bucket_name]
 
 def get_s3_uri(m, file_names, config):
+    """
+    populates file_names list with urls that matched the regex match object
+    returns the total filesize of all the files matched
+    """
     bucket_name = m.group(1)
     path = m.group(2)
     bucket = get_s3_bucket(bucket_name, config)
+    result = 0
     for key in bucket.list(prefix=path):
         file_names.append("s3://{}/{}".format(bucket_name, key.name))
+        result += key.size
+    return result
 
 def get_local_uri(m, file_names, _):
+    """
+    populates file_names list with urls that matched the regex match object
+    returns the total filesize of all the files matched
+    """
     path = m.group(2)
+    result = 0
     for _, _, files in os.walk(path):
         for file_name in files:
-            file_names.append("file:/{}".format(os.path.join(path, file_name)))
+            absolute_path = os.path.join(path, file_name)
+            file_names.append("file:/{}".format(absolute_path))
+            result += os.path.getsize(absolute_path)
+    return result
 
 def download_s3_uri(m, config):
     bucket_name = m.group(1)
@@ -53,20 +68,22 @@ URI_REGEXES = [
 ]
 
 def get_uris(config):
+    """ returns a tuple of total file size in bytes, and the list of files """
     file_names = []
     if config.INPUT_DATA is None:
         sys.stderr.write("you need to provide INPUT_DATA in config\n")
         sys.exit(1)
     if isinstance(config.INPUT_DATA, basestring):
         config.INPUT_DATA = [config.INPUT_DATA]
+    file_size = 0
     for uri in config.INPUT_DATA:
         for regex, uri_method, _ in URI_REGEXES:
             m = regex.match(uri)
             if m is not None:
-                uri_method(m, file_names, config)
+                file_size += uri_method(m, file_names, config)
                 break
     print("going to process {} files...".format(len(file_names)))
-    return file_names
+    return file_size, file_names
 
 def get_download_method(config, uri):
     for regex, _, dl_method in URI_REGEXES:

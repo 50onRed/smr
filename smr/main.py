@@ -37,15 +37,18 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
 
     for line in iter(map_process.stderr.readline, ""):
         line = line.rstrip() # remove trailing linebreak
-        if line.startswith("+"):
-            file_name = line[1:]
-            processed_files_queue.put(file_name)
-        elif line.startswith("!"):
-            file_name = line[1:]
-            add_message("error processing {}, requeuing...".format(file_name))
-            input_queue.put(line[1:]) # re-queue file
-        else:
+        splt = line.split(",", 2)
+        if len(splt) != 3:
             add_message("invalid message received from mapper: {}".format(line))
+        else:
+            file_status, file_size, file_name = splt
+            if file_status == "+":
+                processed_files_queue.put((file_name, int(file_size)))
+            elif file_status == "!":
+                add_message("error processing {}, requeuing...".format(file_name))
+                input_queue.put(file_name) # re-queue file
+            else:
+                add_message("invalid status received from mapper: {}".format(file_status))
 
         if abort_event.is_set() or not write_file_to_descriptor(input_queue, map_process.stdin):
             break
@@ -54,7 +57,7 @@ def worker_stderr_read_thread(processed_files_queue, input_queue, map_process, a
 
     map_process.wait()
 
-def curses_thread(config, abort_event, map_processes, reduce_processes, window, start_time, files_total):
+def curses_thread(config, abort_event, map_processes, reduce_processes, window, start_time, bytes_total):
     map_pids = [psutil.Process(x.pid) for x in map_processes]
     reduce_pids = [psutil.Process(x.pid) for x in reduce_processes]
     sleep_time = config.screen_refresh_interval - (config.cpu_usage_interval * (len(map_pids) + len(reduce_pids)))
@@ -72,7 +75,7 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
             print_pid(p, window, i, "smr-reduce")
             i += 1
 
-        add_str(window, i + 1, "job progress: {0:%}".format(get_param("files_processed") / files_total))
+        add_str(window, i + 1, "job progress: {0:%}".format(get_param("bytes_processed") / bytes_total))
         add_str(window, i + 2, "last file processed: {}".format(get_param("last_file_processed")))
         messages = get_param("messages")[-10:]
         if len(messages) > 0:
@@ -98,7 +101,7 @@ def get_args(process, config):
 def run(config):
     configure_job(config)
     print("getting list of the files to process...")
-    file_names = get_uris(config)
+    bytes_total, file_names = get_uris(config)
     files_total = len(file_names)
     if files_total <= 0:
         print("no files to process")
@@ -147,7 +150,7 @@ def run(config):
 
     if config.output_job_progress:
         window = curses.initscr()
-        curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, map_processes, [reduce_process], window, start_time, files_total))
+        curses_worker = threading.Thread(target=curses_thread, args=(config, abort_event, map_processes, [reduce_process], window, start_time, bytes_total))
         #curses_worker.daemon = True
         curses_worker.start()
 

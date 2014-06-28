@@ -27,14 +27,14 @@ def test_get_uris():
     upload_file(bucket, "file3.csv")
 
     config = get_config_for_prefix("s3://mybucket")
-    uris = get_uris(config)
+    bytes_total, uris = get_uris(config)
     len(uris).should.equal(3)
     uris.should.have("s3://mybucket/dir1/file1.csv")
     uris.should.have("s3://mybucket/dir1/dir2/file2.csv")
     uris.should.have("s3://mybucket/file3.csv")
 
     config = get_config_for_prefix("s3://mybucket/dir1")
-    uris = get_uris(config)
+    bytes_total, uris = get_uris(config)
     len(uris).should.equal(2)
     uris.should.have("s3://mybucket/dir1/file1.csv")
     uris.should.have("s3://mybucket/dir1/dir2/file2.csv")
