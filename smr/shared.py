@@ -1,6 +1,7 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 
+import boto
 import curses
 import os
 from Queue import Empty
@@ -83,3 +84,26 @@ def ensure_dir_exists(path):
     dir_name = os.path.dirname(path)
     if dir_name != '' and not os.path.exists(dir_name):
         os.makedirs(dir_name)
+
+def get_args(process, config, config_path=None):
+    args = [process]
+
+    if config.aws_access_key:
+        args.append("--aws-access-key")
+        args.append(config.aws_access_key)
+    elif boto.config.get('Credentials', 'aws_access_key_id'):
+        args.append("--aws-access-key")
+        args.append(boto.config.get('Credentials', 'aws_access_key_id'))
+
+    if config.aws_secret_key:
+        args.append("--aws-secret-key")
+        args.append(config.aws_secret_key)
+    elif boto.config.get('Credentials', 'aws_secret_access_key'):
+        args.append("--aws-secret-key")
+        args.append(boto.config.get('Credentials', 'aws_secret_access_key'))
+
+    if not config_path:
+        config_path = config.config
+
+    args.append(config_path)
+    return args

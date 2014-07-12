@@ -12,7 +12,10 @@ S3_BUCKETS = {} # cache s3 buckets to re-use them
 
 def get_s3_bucket(bucket_name, config):
     if bucket_name not in S3_BUCKETS:
-        s3conn = boto.connect_s3(config.aws_access_key, config.aws_secret_key)
+        if config.aws_access_key and config.aws_secret_key:
+            s3conn = boto.connect_s3(config.aws_access_key, config.aws_secret_key)
+        else:
+            s3conn = boto.connect_s3() # use local boto config or IAM profile
         S3_BUCKETS[bucket_name] = s3conn.get_bucket(bucket_name)
     return S3_BUCKETS[bucket_name]
 

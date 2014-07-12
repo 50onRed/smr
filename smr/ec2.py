@@ -18,7 +18,8 @@ import time
 
 from .version import __version__
 from .config import get_config, configure_job
-from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str, ensure_dir_exists
+from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, \
+    get_param, add_message, add_str, ensure_dir_exists, get_args
 from .uri import get_uris
 
 RSA_BITS = 2048
@@ -145,17 +146,6 @@ def run_command(ssh, instance, command):
         return False
     print("instance {} successfully ran {}".format(instance.id, command))
 
-def get_args(process, config, config_path):
-    args = [process]
-    if config.aws_access_key:
-        args.append("--aws-access-key")
-        args.append(config.aws_access_key)
-    if config.aws_secret_key:
-        args.append("--aws-secret-key")
-        args.append(config.aws_secret_key)
-    args.append(config_path)
-    return args
-
 def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key):
     ssh = get_ssh_connection()
 
@@ -240,7 +230,10 @@ apt-get -q -y install python-pip python-dev git
 pip install git+git://github.com/idyedov/smr.git
 echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
 """.format(smr_version=__version__, public_key=ssh_key.get_base64(), user=config.aws_ec2_ssh_username)
-    conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
+    if config.aws_access_key and config.aws_secret_key:
+        conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
+    else:
+        conn = boto.ec2.connect_to_region(config.aws_ec2_region)
     reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
                                      user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
     print("requested to start {} instances".format(config.aws_ec2_workers))

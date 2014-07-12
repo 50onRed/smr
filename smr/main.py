@@ -13,7 +13,8 @@ import threading
 
 from .version import __version__
 from .config import get_config, configure_job
-from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, get_param, add_message, add_str, ensure_dir_exists
+from .shared import reduce_thread, progress_thread, write_file_to_descriptor, print_pid, \
+    get_param, add_message, add_str, ensure_dir_exists, get_args
 from .uri import get_uris
 
 def worker_stdout_read_thread(output_queue, map_process, abort_event):
@@ -87,17 +88,6 @@ def curses_thread(config, abort_event, map_processes, reduce_processes, window, 
                 i += 1
         if not abort_event.is_set():
             window.refresh()
-
-def get_args(process, config):
-    args = [process]
-    if config.aws_access_key:
-        args.append("--aws-access-key")
-        args.append(config.aws_access_key)
-    if config.aws_secret_key:
-        args.append("--aws-secret-key")
-        args.append(config.aws_secret_key)
-    args.append(config.config)
-    return args
 
 def run(config):
     configure_job(config)
