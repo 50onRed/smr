@@ -93,6 +93,7 @@ def get_config(args=None):
     parser.add_argument("--screen-refresh-interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=default_config.screen_refresh_interval)
     parser.add_argument("--start-date", type=mkdate, help="start date (%Y-%m-%d) for this job, only used if using {year}/{month}/{day} macros in INPUT_DATA")
     parser.add_argument("--end-date", type=mkdate, help="end date (%Y-%m-%d) for this job, only used if using {year}/{month}/{day} macros in INPUT_DATA", default=datetime.datetime.utcnow().date())
+    parser.add_argument("--date-range", type=int, help="number of days back to process, overrides start date if used")
 
     parser.add_argument("-v", "--version", action="version", version="SMR {}".format(__version__))
 
