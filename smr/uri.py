@@ -3,6 +3,7 @@ from __future__ import (absolute_import, division,
 
 import boto
 from boto.s3.key import Key
+from datetime import timedelta
 import os
 import re
 import shutil
@@ -19,6 +20,10 @@ def get_s3_bucket(bucket_name, config):
         S3_BUCKETS[bucket_name] = s3conn.get_bucket(bucket_name)
     return S3_BUCKETS[bucket_name]
 
+def date_generator(start_date, end_date):
+    for n in xrange(int((end_date - start_date).days + 1)): # +1 because we want to include end_date
+        yield start_date + timedelta(n)
+
 def get_s3_uri(m, file_names, config):
     """
     populates file_names list with urls that matched the regex match object
@@ -28,9 +33,15 @@ def get_s3_uri(m, file_names, config):
     path = m.group(2)
     bucket = get_s3_bucket(bucket_name, config)
     result = 0
-    for key in bucket.list(prefix=path):
-        file_names.append("s3://{}/{}".format(bucket_name, key.name))
-        result += key.size
+    if config.start_date and ("{year" in path or "{month" in path or "{day" in path):
+        for tmp_date in date_generator(config.start_date, config.end_date):
+            for key in bucket.list(prefix=path.format(year=tmp_date.year, month=tmp_date.month, day=tmp_date.day)):
+                file_names.append("s3://{}/{}".format(bucket_name, key.name))
+                result += key.size
+    else:
+        for key in bucket.list(prefix=path):
+            file_names.append("s3://{}/{}".format(bucket_name, key.name))
+            result += key.size
     return result
 
 def get_local_uri(m, file_names, _):

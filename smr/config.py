@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 
 import argparse
+import datetime
 import logging
 import os
 import sys
@@ -65,6 +66,9 @@ def get_config_module(config_name):
 
     return config
 
+def mkdate(datestring):
+    return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
+
 def get_config(args=None):
     default_config = DefaultConfig()
 
@@ -87,6 +91,8 @@ def get_config(args=None):
     parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default=default_config.aws_ec2_remote_config_path)
     parser.add_argument("--cpu-usage-interval", type=float, help="interval used for measuring CPU usage in seconds", default=default_config.cpu_usage_interval)
     parser.add_argument("--screen-refresh-interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=default_config.screen_refresh_interval)
+    parser.add_argument("--start-date", type=mkdate, help="start date (%Y-%m-%d) for this job, only used if using {year}/{month}/{day} macros in INPUT_DATA")
+    parser.add_argument("--end-date", type=mkdate, help="end date (%Y-%m-%d) for this job, only used if using {year}/{month}/{day} macros in INPUT_DATA", default=datetime.datetime.utcnow().date())
 
     parser.add_argument("-v", "--version", action="version", version="SMR {}".format(__version__))
 
