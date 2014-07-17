@@ -29,6 +29,14 @@ class DefaultConfig(object):
         self.aws_ec2_ssh_username = "ubuntu"
         self.aws_ec2_workers = 1
         self.aws_ec2_remote_config_path = "/tmp/smr_config.py"
+        self.aws_ec2_initialization_commands = [
+            "sudo apt-get update",
+            "DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade",
+            #"sudo apt-get -q -y install python-pip python-dev",
+            "sudo apt-get -q -y install python-pip python-dev git",
+            #"sudo pip install smr=={}".format(__version__)",
+            "sudo pip install git+git://github.com/idyedov/smr.git"
+        ]
         self.cpu_usage_interval = 0.1
         self.screen_refresh_interval = 1.0
 
