@@ -118,12 +118,12 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
         else:
             break
 
-    run_command(ssh, instance, "apt-get update")
-    run_command(ssh, instance, "apt-get upgrade -y")
-    #run_command(ssh, instance, "apt-get -q -y install python-pip python-dev")
-    run_command(ssh, instance, "apt-get -q -y install python-pip python-dev git")
-    #run_command(ssh, instance, "pip install smr=={}".format(__version__))
-    run_command(ssh, instance, "pip install git+git://github.com/idyedov/smr.git")
+    run_command(ssh, instance, "sudo apt-get update")
+    run_command(ssh, instance, "sudo apt-get upgrade -y")
+    #run_command(ssh, instance, "sudo apt-get -q -y install python-pip python-dev")
+    run_command(ssh, instance, "sudo apt-get -q -y install python-pip python-dev git")
+    #run_command(ssh, instance, "sudo pip install smr=={}".format(__version__))
+    run_command(ssh, instance, "sudo pip install git+git://github.com/idyedov/smr.git")
 
     if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
         for package in config.PIP_REQUIREMENTS:
