@@ -119,7 +119,7 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
             break
 
     run_command(ssh, instance, "sudo apt-get update")
-    run_command(ssh, instance, "sudo apt-get upgrade -y")
+    run_command(ssh, instance, "DEBIAN_FRONTEND=noninteractive sudo apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade")
     #run_command(ssh, instance, "sudo apt-get -q -y install python-pip python-dev")
     run_command(ssh, instance, "sudo apt-get -q -y install python-pip python-dev git")
     #run_command(ssh, instance, "sudo pip install smr=={}".format(__version__))
