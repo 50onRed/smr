@@ -118,6 +118,13 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
         else:
             break
 
+    run_command(ssh, instance, "apt-get update")
+    run_command(ssh, instance, "apt-get upgrade -y")
+    #run_command(ssh, instance, "apt-get -q -y install python-pip python-dev")
+    run_command(ssh, instance, "apt-get -q -y install python-pip python-dev git")
+    #run_command(ssh, instance, "pip install smr=={}".format(__version__))
+    run_command(ssh, instance, "pip install git+git://github.com/idyedov/smr.git")
+
     if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
         for package in config.PIP_REQUIREMENTS:
             run_command(ssh, instance, "sudo pip install {}".format(package))
@@ -222,14 +229,8 @@ def run(config):
     ssh_key = paramiko.RSAKey.generate(bits=RSA_BITS)
 
     user_data = """#!/bin/bash -v
-apt-get update
-apt-get upgrade -y
-#apt-get -q -y install python-pip python-dev
-apt-get -q -y install python-pip python-dev git
-#pip install smr=={smr_version}
-pip install git+git://github.com/idyedov/smr.git
 echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
-""".format(smr_version=__version__, public_key=ssh_key.get_base64(), user=config.aws_ec2_ssh_username)
+""".format(public_key=ssh_key.get_base64(), user=config.aws_ec2_ssh_username)
     if config.aws_access_key and config.aws_secret_key:
         conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
     else:
