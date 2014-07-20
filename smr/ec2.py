@@ -203,16 +203,8 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
         if not abort_event.is_set():
             window.refresh()
 
-def run(config):
-    configure_job(config)
-
-    print("getting list of the files to process...")
-    bytes_total, file_names = get_uris(config)
+def run_helper(config, ssh_key, bytes_total, file_names, instances):
     files_total = len(file_names)
-    if files_total <= 0:
-        print("no files to process")
-        sys.exit(1)
-
     input_queue = Queue(files_total)
     for file_name in file_names:
         input_queue.put(file_name)
@@ -221,21 +213,6 @@ def run(config):
 
     start_time = datetime.datetime.now()
 
-    print("generating a new RSA key...")
-    ssh_key = paramiko.RSAKey.generate(bits=RSA_BITS)
-
-    user_data = """#!/bin/bash -v
-echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
-""".format(public_key=ssh_key.get_base64(), user=config.aws_ec2_ssh_username)
-    if config.aws_access_key and config.aws_secret_key:
-        conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
-    else:
-        conn = boto.ec2.connect_to_region(config.aws_ec2_region)
-    reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
-                                     user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
-    print("requested to start {} instances".format(config.aws_ec2_workers))
-    instances = reservation.instances
-    instance_ids = [instance.id for instance in instances]
     abort_event = threading.Event()
     initialization_threads = []
     for instance in instances:
@@ -248,13 +225,11 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
             initialization_thread.join()
     except KeyboardInterrupt:
         abort_event.set()
-        conn.terminate_instances(instance_ids)
         print("user aborted. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
         sys.exit(1)
 
     if abort_event.is_set():
-        sys.stderr.write("could not initialize workers, terminating all instances: {}\n".format(",".join(instance_ids)))
-        conn.terminate_instances(instance_ids)
+        sys.stderr.write("could not initialize workers\n")
         sys.exit(1)
 
     print("initialized instance(s) in: {}".format(str(datetime.datetime.now() - start_time)))
@@ -291,7 +266,6 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
             w.join()
     except KeyboardInterrupt:
         abort_event.set()
-        conn.terminate_instances(instance_ids)
         if config.output_job_progress:
             curses.endwin()
         print("user aborted. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
@@ -313,7 +287,6 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
     if reduce_process.returncode != 0:
         print("reduce process {} exited with code {}".format(reduce_process.pid, reduce_process.returncode))
         print("partial results are in {}".format(config.output_filename))
-        conn.terminate_instances(instance_ids)
         sys.exit(1)
 
     reduce_stdout.close()
@@ -324,11 +297,39 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
         exit_code = chan.recv_exit_status()
         if exit_code != 0:
             print("map process exited with code {}".format(exit_code))
-
-    conn.terminate_instances(instance_ids)
-
+    
     print("done. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
     print("results are in {}".format(config.output_filename))
+
+def run(config):
+    configure_job(config)
+
+    print("getting list of the files to process...")
+    bytes_total, file_names = get_uris(config)
+    if len(file_names) <= 0:
+        sys.stderr.write("no files to process\n")
+        sys.exit(1)
+
+    print("generating a new RSA key...")
+    ssh_key = paramiko.RSAKey.generate(bits=RSA_BITS)
+
+    user_data = """#!/bin/bash -v
+echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
+""".format(public_key=ssh_key.get_base64(), user=config.aws_ec2_ssh_username)
+    if config.aws_access_key and config.aws_secret_key:
+        conn = boto.ec2.connect_to_region(config.aws_ec2_region, aws_access_key_id=config.aws_access_key, aws_secret_access_key=config.aws_secret_key)
+    else:
+        conn = boto.ec2.connect_to_region(config.aws_ec2_region)
+    print("requesting to start {} instances".format(config.aws_ec2_workers))
+    reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
+                                     user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
+    instances = reservation.instances
+    try:
+        run_helper(config, ssh_key, bytes_total, file_names, instances)
+    finally:
+        instance_ids = [instance.id for instance in instances]
+        print("terminating all instances: {}".format(",".join(instance_ids)))
+        conn.terminate_instances(instance_ids)
 
 def main():
     config = get_config()
