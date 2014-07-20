@@ -213,6 +213,18 @@ def curses_thread(config, abort_event, instances, reduce_processes, window, star
         if not abort_event.is_set():
             window.refresh()
 
+def run_job_on_instances(config, instances, abort_event, output_queue, processed_files_queue, input_queue, ssh_key):
+    workers = []
+    for instance in instances:
+        for _ in xrange(config.workers):
+            workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key))
+
+    for chan, worker in workers:
+        worker.join()
+        exit_code = chan.recv_exit_status()
+        if exit_code != 0:
+            sys.stderr.write("map process exited with code {}\n".format(exit_code))
+
 def run_helper(config, ssh_key, bytes_total, file_names, instances):
     files_total = len(file_names)
     input_queue = Queue(files_total)
@@ -239,11 +251,6 @@ def run_helper(config, ssh_key, bytes_total, file_names, instances):
     start_time = datetime.datetime.now()
 
     try:
-        workers = []
-        for instance in instances:
-            for _ in xrange(config.workers):
-                workers.append(start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key))
-
         if not config.output_filename:
             config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())
         ensure_dir_exists(config.output_filename)
@@ -265,8 +272,7 @@ def run_helper(config, ssh_key, bytes_total, file_names, instances):
             #curses_worker.daemon = True
             curses_worker.start()
 
-        for _, w in workers:
-            w.join()
+        run_job_on_instances(config, instances, abort_event, output_queue, processed_files_queue, input_queue, ssh_key)
     except KeyboardInterrupt:
         abort_event.set()
         if config.output_job_progress:
@@ -295,11 +301,6 @@ def run_helper(config, ssh_key, bytes_total, file_names, instances):
     reduce_stdout.close()
     for message in get_param("messages"):
         print(message)
-
-    for chan, _ in workers:
-        exit_code = chan.recv_exit_status()
-        if exit_code != 0:
-            print("map process exited with code {}".format(exit_code))
     
     print("done. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
     print("results are in {}".format(config.output_filename))
