@@ -133,6 +133,16 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
     ssh.close()
     print("instance {} successfully initialized".format(instance.id))
 
+def initialize_instances(config, instances, abort_event, ssh_key):
+    initialization_threads = []
+    for instance in instances:
+        initialization_thread = threading.Thread(target=initialize_instance_thread, args=(config, instance, abort_event, ssh_key))
+        initialization_thread.start()
+        initialization_threads.append(initialization_thread)
+
+    for initialization_thread in initialization_threads:
+        initialization_thread.join()
+
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
     chan.exec_command(command)
@@ -214,15 +224,8 @@ def run_helper(config, ssh_key, bytes_total, file_names, instances):
     start_time = datetime.datetime.now()
 
     abort_event = threading.Event()
-    initialization_threads = []
-    for instance in instances:
-        initialization_thread = threading.Thread(target=initialize_instance_thread, args=(config, instance, abort_event, ssh_key))
-        initialization_thread.start()
-        initialization_threads.append(initialization_thread)
-
     try:
-        for initialization_thread in initialization_threads:
-            initialization_thread.join()
+        initialize_instances(config, instances, abort_event, ssh_key)
     except KeyboardInterrupt:
         abort_event.set()
         print("user aborted. elapsed time: {}".format(str(datetime.datetime.now() - start_time)))
