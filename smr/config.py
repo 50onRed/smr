@@ -97,6 +97,7 @@ def get_config(args=None):
     parser.add_argument("--aws-ec2-ssh-username", help="username to use when logging into EC2 workers over SSH", default=default_config.aws_ec2_ssh_username)
     parser.add_argument("--aws-ec2-workers", help="number of EC2 instances to use for this job", type=int, default=default_config.aws_ec2_workers)
     parser.add_argument("--aws-ec2-remote-config-path", help="where to store smr config on EC2 instances", default=default_config.aws_ec2_remote_config_path)
+    parser.add_argument("--aws-ec2-initialization-commands", help="initialization commands to use for EC2 instances", nargs="+", default=default_config.aws_ec2_initialization_commands)
     parser.add_argument("--cpu-usage-interval", type=float, help="interval used for measuring CPU usage in seconds", default=default_config.cpu_usage_interval)
     parser.add_argument("--screen-refresh-interval", type=float, help="how often to refresh job progress that's displayed on screen in seconds", default=default_config.screen_refresh_interval)
     parser.add_argument("--start-date", type=mkdate, help="start date (YYYY-mm-dd) for this job, only used if using {year}/{month}/{day} macros in INPUT_DATA")
