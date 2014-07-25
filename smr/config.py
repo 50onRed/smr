@@ -43,6 +43,10 @@ def get_default_config():
     return DefaultConfig()
 
 def get_config_module(config_name):
+    if not os.path.isfile(config_name):
+        sys.stderr.write("job definition does not exist: {}\n".format(config_name))
+        sys.exit(1)
+
     if config_name.endswith(".py"):
         config_name = config_name[:-3]
     elif config_name.endswith(".pyc"):
@@ -57,7 +61,7 @@ def get_config_module(config_name):
     try:
         config = __import__(config_module)
     except ImportError:
-        sys.stderr.write("Invalid job definition provided: {}\n".format(config_module))
+        sys.stderr.write("Could not import job definition: {}\n".format(config_module))
         sys.exit(1)
 
     if not hasattr(config, "PIP_REQUIREMENTS"):
