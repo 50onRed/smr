@@ -4,7 +4,7 @@ import os
 import sys
 
 from .config import get_config, configure_job
-from .uri import download
+from .uri import download, cleanup
 
 def write_to_stderr(file_status, file_size, file_name):
     sys.stderr.write("{},{},{}\n".format(file_status, file_size, file_name))
@@ -28,10 +28,7 @@ def run(config):
                 write_to_stderr("!", 0, uri)
             finally:
                 sys.stdout.flush() # force stdout flush after every file processed
-                try:
-                    os.unlink(temp_filename)
-                except OSError:
-                    pass
+                cleanup(uri, temp_filename)
     except (KeyboardInterrupt, SystemExit):
         sys.stderr.write("map worker {} aborted\n".format(os.getpid()))
         sys.exit(1)

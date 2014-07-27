@@ -50,9 +50,9 @@ def get_local_uri(m, file_names, _):
     """
     path = m.group(2)
     result = 0
-    for _, _, files in os.walk(path):
+    for root, _, files in os.walk(path):
         for file_name in files:
-            absolute_path = os.path.join(path, file_name)
+            absolute_path = os.path.join(root, file_name)
             file_names.append("file:/{}".format(absolute_path))
             result += os.path.getsize(absolute_path)
     return result
@@ -68,12 +68,17 @@ def download_s3_uri(m, config):
         return temp_file.name
 
 def download_local_uri(m, _):
-    path = m.group(2)
-    return path
+    return m.group(2)
+
+def cleanup_s3_uri(temp_filename):
+    try:
+        os.unlink(temp_filename)
+    except OSError:
+        pass
 
 URI_REGEXES = [
-    (re.compile(r"^s3://([^/]+)/?(.*)", re.IGNORECASE), get_s3_uri, download_s3_uri),
-    (re.compile(r"^(file:/)?(/.*)", re.IGNORECASE), get_local_uri, download_local_uri)
+    (re.compile(r"^s3://([^/]+)/?(.*)", re.IGNORECASE), get_s3_uri, download_s3_uri, cleanup_s3_uri),
+    (re.compile(r"^(file:/)?(/.*)", re.IGNORECASE), get_local_uri, download_local_uri, None)
 ]
 
 def get_uris(config):
@@ -86,7 +91,7 @@ def get_uris(config):
         config.INPUT_DATA = [config.INPUT_DATA]
     file_size = 0
     for uri in config.INPUT_DATA:
-        for regex, uri_method, _ in URI_REGEXES:
+        for regex, uri_method, _, _ in URI_REGEXES:
             m = regex.match(uri)
             if m is not None:
                 file_size += uri_method(m, file_names, config)
@@ -95,7 +100,13 @@ def get_uris(config):
     return file_size, file_names
 
 def download(config, uri):
-    for regex, _, dl_method in URI_REGEXES:
+    for regex, _, dl_method, _ in URI_REGEXES:
         m = regex.match(uri)
         if m is not None:
             return dl_method(m, config)
+
+def cleanup(uri, temp_filename):
+    for regex, _, _, cleanup_method in URI_REGEXES:
+        m = regex.match(uri)
+        if m is not None and cleanup_method is not None:
+            return cleanup_method(temp_filename)
