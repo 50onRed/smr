@@ -1,13 +1,10 @@
 #!/usr/bin/env python
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-
+from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 import sys
-import tempfile
 
 from .config import get_config, configure_job
-from .uri import get_download_method
+from .uri import download
 
 def write_to_stderr(file_status, file_size, file_name):
     sys.stderr.write("{},{},{}\n".format(file_status, file_size, file_name))
@@ -18,10 +15,8 @@ def run(config):
     try:
         for uri in iter(sys.stdin.readline, ""):
             uri = uri.rstrip() # remove trailing linebreak
-            temp_file, temp_filename = tempfile.mkstemp()
-            dl = get_download_method(config, uri)
             try:
-                dl(temp_filename)
+                temp_filename = download(config, uri)
                 file_size = os.path.getsize(temp_filename)
                 config.MAP_FUNC(temp_filename)
                 write_to_stderr("+", file_size, uri)
@@ -33,7 +28,6 @@ def run(config):
                 write_to_stderr("!", 0, uri)
             finally:
                 sys.stdout.flush() # force stdout flush after every file processed
-                os.close(temp_file)
                 try:
                     os.unlink(temp_filename)
                 except OSError:

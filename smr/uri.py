@@ -1,13 +1,11 @@
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-
+from __future__ import absolute_import, division, print_function, unicode_literals
 import boto
 from boto.s3.key import Key
 from datetime import timedelta
 import os
 import re
-import shutil
 import sys
+import tempfile
 
 S3_BUCKETS = {} # cache s3 buckets to re-use them
 
@@ -62,20 +60,16 @@ def get_local_uri(m, file_names, _):
 def download_s3_uri(m, config):
     bucket_name = m.group(1)
     path = m.group(2)
-    def download(local_file_name):
-        bucket = get_s3_bucket(bucket_name, config)
-        k = Key(bucket)
-        k.key = path
-        k.get_contents_to_filename(local_file_name)
-
-    return download
+    bucket = get_s3_bucket(bucket_name, config)
+    k = Key(bucket)
+    k.key = path
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        k.get_contents_to_filename(temp_file.name)
+        return temp_file.name
 
 def download_local_uri(m, _):
     path = m.group(2)
-    def download(local_file_name):
-        shutil.copyfile(path, local_file_name)
-
-    return download
+    return path
 
 URI_REGEXES = [
     (re.compile(r"^s3://([^/]+)/?(.*)", re.IGNORECASE), get_s3_uri, download_s3_uri),
@@ -100,7 +94,7 @@ def get_uris(config):
     print("going to process {} files...".format(len(file_names)))
     return file_size, file_names
 
-def get_download_method(config, uri):
+def download(config, uri):
     for regex, _, dl_method in URI_REGEXES:
         m = regex.match(uri)
         if m is not None:
