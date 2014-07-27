@@ -9,6 +9,7 @@ import os
 import paramiko
 import psutil
 from Queue import Queue
+import socket
 import subprocess
 import sys
 import threading
@@ -117,11 +118,15 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
             break
 
     for command in config.aws_ec2_initialization_commands:
-        run_command(ssh, instance, command)
+        if not run_command(ssh, instance, command):
+            abort_event.set()
+            return
 
     if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
         for package in config.PIP_REQUIREMENTS:
-            run_command(ssh, instance, "sudo pip install {}".format(package))
+            if not run_command(ssh, instance, "sudo pip install {}".format(package)):
+                abort_event.set()
+                return
 
     # copy config to this instance
     sftp = ssh.open_sftp()
@@ -143,19 +148,27 @@ def initialize_instances(config, instances, abort_event, ssh_key):
 
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
-    chan.exec_command(command)
-    #stdout = chan.makefile("rb")
-    stderr = chan.makefile_stderr("rb")
-    #for line in iter(stdout.readline, ""):
-    #    print(line.rstrip())
-    for line in iter(stderr.readline, ""):
-        print("instance {} stderr: {}".format(instance.id, line.rstrip()))
-    exit_code = chan.recv_exit_status()
-    if exit_code != 0:
-        print("instance {} invalid exit code of {}: {}".format(instance.id, command, exit_code))
-        ssh.close() # closes chan as well
+    # initialization fails if one of the commands doesn't return in 60 seconds
+    chan.settimeout(60.0)
+    try:
+        chan.exec_command(command)
+        #stdout = chan.makefile("rb")
+        stderr = chan.makefile_stderr("rb")
+        #for line in iter(stdout.readline, ""):
+        #    print(line.rstrip())
+        for line in iter(stderr.readline, ""):
+            print("instance {} stderr: {}".format(instance.id, line.rstrip()))
+        exit_code = chan.recv_exit_status()
+        if exit_code != 0:
+            print("instance {} invalid exit code of {}: {}".format(instance.id, command, exit_code))
+            ssh.close() # closes chan as well
+            return False
+        print("instance {} successfully ran {}".format(instance.id, command))
+        return True
+    except socket.timeout:
+        print("instance {} timed out while running {}".format(instance.id, command))
+        ssh.close()
         return False
-    print("instance {} successfully ran {}".format(instance.id, command))
 
 def start_worker(config, instance, abort_event, output_queue, processed_files_queue, input_queue, ssh_key):
     ssh = get_ssh_connection()
