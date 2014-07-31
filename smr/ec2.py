@@ -149,7 +149,7 @@ def initialize_instances(config, instances, abort_event, ssh_key):
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
     # initialization fails if one of the commands doesn't return in 60 seconds
-    chan.settimeout(60.0)
+    chan.settimeout(120.0)
     try:
         chan.exec_command(command)
         #stdout = chan.makefile("rb")
