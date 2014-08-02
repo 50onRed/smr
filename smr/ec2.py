@@ -122,12 +122,6 @@ def initialize_instance_thread(config, instance, abort_event, ssh_key):
             abort_event.set()
             return
 
-    if config.PIP_REQUIREMENTS is not None and len(config.PIP_REQUIREMENTS) > 0:
-        for package in config.PIP_REQUIREMENTS:
-            if not run_command(ssh, instance, "sudo pip install {}".format(package)):
-                abort_event.set()
-                return
-
     # copy config to this instance
     sftp = ssh.open_sftp()
     sftp.put(config.config, config.aws_ec2_remote_config_path)
@@ -148,8 +142,8 @@ def initialize_instances(config, instances, abort_event, ssh_key):
 
 def run_command(ssh, instance, command):
     chan = ssh.get_transport().open_session()
-    # initialization fails if one of the commands doesn't return in 60 seconds
-    chan.settimeout(120.0)
+    # initialization fails if one of the commands doesn't return in 5 minutes
+    chan.settimeout(300.0)
     try:
         chan.exec_command(command)
         #stdout = chan.makefile("rb")

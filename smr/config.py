@@ -62,8 +62,6 @@ def get_config_module(config_name):
         sys.stderr.write("Could not import job definition: {}\n".format(config_module))
         sys.exit(1)
 
-    if not hasattr(config, "PIP_REQUIREMENTS"):
-        setattr(config, "PIP_REQUIREMENTS", None)
     if not hasattr(config, "MAP_FUNC"):
         setattr(config, "MAP_FUNC", None)
     if not hasattr(config, "REDUCE_FUNC"):
@@ -115,9 +113,13 @@ def configure_job(args):
     config = get_config_module(args.config)
 
     # add extra options to args that cannot be specified in cli
-    for arg in ("MAP_FUNC", "REDUCE_FUNC", "OUTPUT_RESULTS_FUNC",
-                "INPUT_DATA", "PIP_REQUIREMENTS"):
+    for arg in ("MAP_FUNC", "REDUCE_FUNC", "OUTPUT_RESULTS_FUNC", "INPUT_DATA"):
         setattr(args, arg, getattr(config, arg))
+
+    pip_requirements = getattr(config, "PIP_REQUIREMENTS", None)
+    if pip_requirements:
+        for package in pip_requirements:
+            args.aws_ec2_initialization_commands.append("sudo pip install {}".format(package))
 
     paramiko_level_str = args.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
