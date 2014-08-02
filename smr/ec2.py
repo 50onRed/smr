@@ -331,7 +331,8 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
         conn = boto.ec2.connect_to_region(config.aws_ec2_region)
     print("requesting to start {} instances".format(config.aws_ec2_workers))
     reservation = conn.run_instances(image_id=config.aws_ec2_ami, min_count=config.aws_ec2_workers, max_count=config.aws_ec2_workers, \
-                                     user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group)
+                                     user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group, \
+                                     instance_profile_name=config.aws_iam_profile)
     instances = reservation.instances
     try:
         run_helper(config, ssh_key, bytes_total, file_names, instances)
