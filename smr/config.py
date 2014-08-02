@@ -89,6 +89,7 @@ def get_config(args=None):
     parser.add_argument("--no-output-job-progress", help="Do not output job progress to screen", dest='output_job_progress', action='store_false')
     parser.add_argument("--aws-access-key", help="AWS access key used for S3/EC2 access")
     parser.add_argument("--aws-secret-key", help="AWS secret key used for S3/EC2 access")
+    parser.add_argument("--aws-iam-profile", help="AWS IAM profile to use when launching EC2 instances")
     parser.add_argument("--aws-ec2-region", help="region to use when running smr-ec2 workers", default=default_config.aws_ec2_region)
     parser.add_argument("--aws-ec2-ami", help="AMI to use when running smr-ec2 workers", default=default_config.aws_ec2_ami)
     parser.add_argument("--aws-ec2-instance-type", help="instance type to use for EC2 instances", default=default_config.aws_ec2_instance_type)

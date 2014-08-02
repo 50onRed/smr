@@ -100,6 +100,12 @@ def get_args(process, config, config_path=None):
         args.append("--aws-secret-key")
         args.append(boto.config.get('Credentials', 'aws_secret_access_key'))
 
+    # if we don't have aws credentials and no iam profile in config, attempt to use iam profile of current instance
+    if not config.aws_iam_profile and (not config.aws_access_key or not config.aws_secret_key):
+        metadata = boto.utils.get_instance_metadata(timeout=1.0, num_retries=1, data='meta-data/iam/security-credentials/')
+        if len(metadata) > 0:
+            config.aws_iam_profile = metadata.keys()[0]
+
     if not config_path:
         config_path = config.config
 
