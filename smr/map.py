@@ -15,6 +15,7 @@ def run(config):
     try:
         for uri in iter(sys.stdin.readline, ""):
             uri = uri.rstrip() # remove trailing linebreak
+            temp_filename = None
             try:
                 temp_filename = download(config, uri)
                 file_size = os.path.getsize(temp_filename)
@@ -28,7 +29,8 @@ def run(config):
                 write_to_stderr("!", 0, uri)
             finally:
                 sys.stdout.flush() # force stdout flush after every file processed
-                cleanup(uri, temp_filename)
+                if temp_filename:
+                    cleanup(uri, temp_filename)
     except (KeyboardInterrupt, SystemExit):
         sys.stderr.write("map worker {} aborted\n".format(os.getpid()))
         sys.exit(1)
