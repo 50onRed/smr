@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import argparse
+import boto
 import datetime
 import logging
 import os
@@ -121,6 +122,12 @@ def configure_job(args):
     if pip_requirements:
         for package in pip_requirements:
             args.aws_ec2_initialization_commands.append("sudo pip install {}".format(package))
+
+    # if we don't have aws credentials and no iam profile in config, attempt to use iam profile of current instance
+    if not args.aws_iam_profile and (not args.aws_access_key or not args.aws_secret_key):
+        metadata = boto.utils.get_instance_metadata(timeout=1.0, num_retries=1, data='meta-data/iam/security-credentials/')
+        if len(metadata) > 0:
+            args.aws_iam_profile = metadata.keys()[0]
 
     paramiko_level_str = args.paramiko_log_level.lower()
     paramiko_level = LOG_LEVELS.get(paramiko_level_str, logging.WARNING)
