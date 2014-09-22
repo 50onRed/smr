@@ -35,6 +35,7 @@ class DefaultConfig(object):
             #"sudo pip install smr=={}".format(__version__)",
             "sudo pip install git+git://github.com/idyedov/smr.git"
         ]
+        self.aws_iam_profile = None
         self.cpu_usage_interval = 0.1
         self.screen_refresh_interval = 1.0
 
