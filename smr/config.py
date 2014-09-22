@@ -21,6 +21,8 @@ class DefaultConfig(object):
         self.paramiko_log_level = "warning"
         self.workers = 8
         self.output_job_progress = True
+        self.aws_access_key = None
+        self.aws_secret_key = None
         self.aws_ec2_region = "us-east-1"
         self.aws_ec2_ami = "ami-30837058"
         self.aws_ec2_instance_type = "m3.large"
@@ -38,6 +40,9 @@ class DefaultConfig(object):
         self.aws_iam_profile = None
         self.cpu_usage_interval = 0.1
         self.screen_refresh_interval = 1.0
+        self.date_range = None
+        self.start_date = None
+        self.end_date = None
 
 def get_default_config():
     return DefaultConfig()
