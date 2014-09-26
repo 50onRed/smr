@@ -34,7 +34,7 @@ class DefaultConfig(object):
             "sudo apt-get update",
             "sudo apt-get -q -y install python-pip python-dev",
             #"sudo apt-get -q -y install python-pip python-dev git",
-            "sudo pip install smr=={}".format(__version__)"
+            "sudo pip install smr=={}".format(__version__)
             #"sudo pip install git+git://github.com/idyedov/smr.git"
         ]
         self.aws_iam_profile = None
