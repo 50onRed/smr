@@ -65,8 +65,8 @@ def get_config_module(config_name):
 
     try:
         config = __import__(config_module)
-    except ImportError:
-        sys.stderr.write("Could not import job definition: {}\n".format(config_module))
+    except ImportError as exc:
+        sys.stderr.write("Could not import job definition: {}. Error: {}\n".format(config_module, exc))
         sys.exit(1)
 
     if not hasattr(config, "MAP_FUNC"):
