@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division, print_function, unicode_literals
+from inspect import getargspec
 import os
 import sys
 
@@ -19,7 +20,11 @@ def run(config):
             try:
                 temp_filename = download(config, uri)
                 file_size = os.path.getsize(temp_filename)
-                config.MAP_FUNC(temp_filename)
+                # allow passing uri to mapper, without breaking existing code
+                if len(getargspec(config.MAP_FUNC).args) == 2:
+                    config.MAP_FUNC(temp_filename, uri)
+                else:
+                    config.MAP_FUNC(temp_filename)
                 write_to_stderr("+", file_size, uri)
             except (KeyboardInterrupt, SystemExit):
                 sys.stderr.write("map worker {} aborted\n".format(os.getpid()))
