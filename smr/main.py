@@ -123,7 +123,7 @@ def run(config):
         read_workers.append(rew)
 
     if not config.output_filename:
-        config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now())
+        config.output_filename = "results/{}.{}.out".format(os.path.basename(config.config), datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S.%f"))
     ensure_dir_exists(config.output_filename)
 
     reduce_stdout = open(config.output_filename, "w")
