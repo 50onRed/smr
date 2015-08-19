@@ -334,6 +334,9 @@ echo "ssh-rsa {public_key} smr" > /home/{user}/.ssh/authorized_keys
                                      user_data=user_data, instance_type=config.aws_ec2_instance_type, security_groups=config.aws_ec2_security_group, \
                                      instance_profile_name=config.aws_iam_profile)
     instances = reservation.instances
+    for instance in instances:
+        instance.add_tag('Name', 'smr-worker')
+        instance.add_tag('job', os.path.basename(config.config))
     try:
         run_helper(config, ssh_key, bytes_total, file_names, instances)
     finally:
