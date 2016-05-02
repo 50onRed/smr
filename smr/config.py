@@ -32,7 +32,7 @@ class DefaultConfig(object):
         self.aws_ec2_remote_config_path = "/tmp/smr_config.py"
         self.aws_ec2_initialization_commands = [
             "sudo apt-get update",
-            "sudo apt-get -q -y install python-pip python-dev",
+            "sudo apt-get -q -y install python-pip python-dev gcc build-essential libssl-dev libffi-dev",
             #"sudo apt-get -q -y install python-pip python-dev git",
             "sudo pip install smr=={}".format(__version__)
             #"sudo pip install git+git://github.com/idyedov/smr.git"
